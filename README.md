@@ -65,6 +65,13 @@ runs the server can reset a password from a Flask shell if someone forgets.
    evidence counts, average score, contribution status, and risk flags — with
    the threshold rules spelled out in the legend so you can defend a flag.
 
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) — a complete PythonAnywhere (free tier)
+walkthrough: your local `se_tracker.db` is uploaded as-is, no database
+migration. `create_app` honors two env vars for any host: `DATABASE_URL`
+(relocate the DB) and `HTTPS_ONLY=1` (mark session cookies Secure).
+
 ## Importing existing Excel data
 
 Sidebar → **Import data**. Convert your legacy per-team workbooks to JSON

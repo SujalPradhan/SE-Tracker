@@ -1,8 +1,23 @@
 """TA accounts: login, registration, and per-TA scoping of teams."""
 
 import services
+from app import create_app
 from conftest import TEST_PASSWORD, make_ta, make_team, sign_in
 from models import TA, Team, db
+
+
+def test_deploy_env_vars_are_honored(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "sqlite://")
+    monkeypatch.setenv("HTTPS_ONLY", "1")
+    app = create_app()
+    assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite://"
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+
+    monkeypatch.delenv("DATABASE_URL")
+    monkeypatch.delenv("HTTPS_ONLY")
+    app = create_app("sqlite://")  # explicit arg still wins; local http stays fine
+    assert app.config["SESSION_COOKIE_SECURE"] is False
 
 
 def test_pages_require_sign_in(app, client):

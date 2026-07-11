@@ -525,8 +525,14 @@ def _stable_secret_key():
 def create_app(database_uri=None):
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = (
-        database_uri or "sqlite:///" + str(Path(app.root_path) / "se_tracker.db")
+        database_uri
+        or os.environ.get("DATABASE_URL")
+        or "sqlite:///" + str(Path(app.root_path) / "se_tracker.db")
     )
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    # Set HTTPS_ONLY=1 on hosts that serve HTTPS (see DEPLOY.md); left off
+    # locally so plain-http `python app.py` sign-in keeps working.
+    app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("HTTPS_ONLY"))
     db.init_app(app)
     with app.app_context():
         _upgrade_pre_accounts_db()

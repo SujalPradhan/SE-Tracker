@@ -27,15 +27,13 @@ status dots, risk flags, and export-all. Suggested shape:
   to a few TAs, not fine on the public internet.
 - Rate-limit `/login`.
 
-## Hosted deployment notes
+## Hosting follow-ups
 
-- Run under a real WSGI server (`gunicorn "app:create_app()"`); set
-  `SECRET_KEY` in the environment (falls back to a generated key persisted
-  in the `setting` table, which is fine for a single machine).
-- Serve over HTTPS and set `SESSION_COOKIE_SECURE=True` once hosted.
-- SQLite is fine for ~15 teams / a handful of TAs (put the DB file on a
-  persistent volume); move to Postgres only if many TAs write concurrently —
-  SQLAlchemy makes that a connection-string change.
+*(Deployed on PythonAnywhere free tier — see DEPLOY.md. `DATABASE_URL` and
+`HTTPS_ONLY` env vars are supported for any future host.)*
+
+- Move to Postgres only if many TAs write concurrently — SQLAlchemy makes
+  that a connection-string change plus a one-time data copy.
 - Browser-local call drafts are keyed by call id only; if two TAs shared a
   browser profile, scope draft keys by account too.
 
