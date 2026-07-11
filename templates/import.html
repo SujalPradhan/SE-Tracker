@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Import data — SE-Tracker{% endblock %}
+{% block content %}
+<h1 class="page-title">Import data</h1>
+<p class="muted import-intro">
+  Bring existing Excel data in as JSON — everything lands in your account.
+  The import is all-or-nothing: if anything is invalid, nothing is saved and
+  every problem is listed below. Team numbers that already exist are rejected,
+  so delete old copies first (Edit team → Delete team).
+</p>
+
+<details class="legend">
+  <summary>How to convert your .xlsx with Claude (copy this prompt)</summary>
+  <div class="prompt-actions">
+    <button type="button" class="btn btn-small" id="copy-prompt">Copy prompt</button>
+    <span class="muted" id="copy-status"></span>
+  </div>
+  <pre class="prompt-block" id="claude-prompt">Convert the attached SE-Tracker Excel workbook(s) — one per team, with sheets Team_Info, Client_Calls and Milestone_Submissions (ignore Call_Summary and Risk_Flags, they are computed) — into ONE JSON object in exactly this format:
+
+{
+  "teams": [
+    {
+      "team_number": 96,
+      "project_name": "",
+      "repo_url": "",
+      "members": [
+        {"name": "Full Name", "role": "Role text", "email": "email"}
+      ],
+      "calls": [
+        {
+          "call_no": 1,
+          "week": "W1",
+          "milestone": "M1",
+          "entries": [
+            {
+              "member": "Full Name",
+              "present": "Y",
+              "spoke": "N",
+              "tasks_assigned_prev": "",
+              "progress": "",
+              "evidence_link": "",
+              "role_fulfillment": 2.5,
+              "client_interaction": null,
+              "initiative": 1,
+              "remarks": ""
+            }
+          ]
+        }
+      ],
+      "milestone_submissions": [
+        {
+          "member": "Full Name",
+          "milestone": "M1",
+          "report_section": "",
+          "code": "Y",
+          "tests": "N",
+          "demo": "",
+          "evidence_link": "",
+          "remarks": ""
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- team_number: the numeric Team ID ("096" → 96). One team object per workbook.
+- One members entry per Team_Info row, copied verbatim.
+- Group Client_Calls rows by "Call #": one calls object per call number (week and milestone come from that call's rows); each member row becomes one entries object. "Tasks Assigned (Prev Call)" → tasks_assigned_prev, "Progress Since Last Call" → progress, "TA Remarks" → remarks.
+- Member names in entries and milestone_submissions must match Team_Info names exactly.
+- present/spoke: keep "Y"/"N" as-is.
+- Scores: plain numbers (0.5 steps allowed); blank cells → null. Do NOT include Total Score — it is computed.
+- Do not invent data: blank text cells → "", blank scores → null. There is no date column, so omit "date".
+- Milestone_Submissions: Code/Tests/Demo → "Y", "N", or "".
+- Output ONLY the JSON — no commentary, no markdown fences.</pre>
+</details>
+
+<label class="import-label">Converted JSON
+  <textarea id="import-json" rows="16" spellcheck="false"
+            placeholder='{"teams": [ … ]}'></textarea>
+</label>
+<div class="save-bar">
+  <span class="save-status" id="import-status" role="status"></span>
+  <button type="button" class="btn btn-primary" id="run-import">Import</button>
+</div>
+<div id="import-result" hidden></div>
+{% endblock %}

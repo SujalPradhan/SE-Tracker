@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+se_tracker.db
+instance/
+.pytest_cache/

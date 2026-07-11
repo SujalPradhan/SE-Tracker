@@ -1,0 +1,107 @@
+{% from "_macros.html" import chips_row, yn_toggle %}
+{% extends "base.html" %}
+{% block title %}Call #{{ call.call_no }} — Team {{ team.display_number }} — SE-Tracker{% endblock %}
+{% block content %}
+<form id="call-form" data-call-id="{{ call.id }}" autocomplete="off">
+  <header class="call-header">
+    <div>
+      <a class="back-link" href="{{ url_for('main.team_page', team_id=team.id, tab='calls') }}">← Team {{ team.display_number }}</a>
+      <h1 class="page-title">Call #{{ call.call_no }}</h1>
+    </div>
+    <div class="call-fields">
+      <label>Week
+        <input id="call-week" name="week" value="{{ call.week }}" placeholder="e.g. W4" size="6">
+      </label>
+      <label>Milestone
+        <select id="call-milestone" name="milestone">
+          {% for m in team.milestones %}
+          <option value="{{ m }}" {% if m == call.milestone %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Date
+        <input id="call-date" name="date" type="date" value="{{ call.date.isoformat() if call.date else '' }}">
+      </label>
+    </div>
+  </header>
+
+  <div class="banner" id="draft-banner" hidden>
+    Restored an unsaved draft of this call.
+    <button type="button" class="link-btn" id="discard-draft">Discard draft</button>
+  </div>
+
+  <div class="member-cards">
+    {% for member, entry in member_entries %}
+    <section class="member-card" data-member-id="{{ member.id }}" aria-label="{{ member.name }}">
+      <header class="card-head">
+        <div>
+          <h2>{{ member.name }}</h2>
+          <span class="muted">{{ member.role }}</span>
+        </div>
+        <div class="card-total" title="Sum of the entered rubric scores">
+          <span class="muted">Total</span>
+          <span class="total-value">—</span>
+        </div>
+      </header>
+
+      <div class="card-row toggle-row">
+        {{ yn_toggle('present', 'Present', entry.present) }}
+        {{ yn_toggle('spoke', 'Spoke', entry.spoke) }}
+      </div>
+
+      <div class="card-row two-col">
+        <label>Tasks assigned (prev call) <span class="carried" title="Carried forward from the previous call">carried</span>
+          <textarea name="tasks_assigned_prev" rows="2">{{ entry.tasks_assigned_prev }}</textarea>
+        </label>
+        <label>Progress since last call
+          <textarea name="progress" rows="2">{{ entry.progress }}</textarea>
+        </label>
+      </div>
+
+      <label class="evidence-label">Evidence link
+        <span class="evidence-row">
+          <input name="evidence_link" value="{{ entry.evidence_link }}" aria-label="Evidence link"
+                 placeholder="https://…">
+          <a class="btn btn-small evidence-open" target="_blank" rel="noopener" hidden>Open ↗</a>
+        </span>
+      </label>
+
+      <div class="card-row score-row">
+        {% for name, label, max in score_fields %}
+        <div class="score">
+          <span class="field-label">{{ label }} (0–{{ max }})</span>
+          <div class="stepper">
+            <button type="button" class="step" data-delta="-0.5" aria-label="Decrease {{ label }}">−</button>
+            <input class="score-input" name="{{ name }}" type="number" min="0" max="{{ max }}" step="0.5"
+                   inputmode="decimal" placeholder="—"
+                   value="{{ '%g' | format(entry[name]) if entry[name] is not none else '' }}">
+            <button type="button" class="step" data-delta="0.5" aria-label="Increase {{ label }}">+</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="card-row two-col">
+        <label>Tasks for next call <span class="muted">(auto-fills the next call)</span>
+          <textarea name="tasks_for_next" rows="2">{{ entry.tasks_for_next }}</textarea>
+        </label>
+        <label class="remarks-wrap">TA remarks
+          <textarea name="remarks" rows="2">{{ entry.remarks }}</textarea>
+          {{ chips_row(chips) }}
+        </label>
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  <footer class="save-bar sticky">
+    <div class="member-pills" id="member-pills" role="group" aria-label="Jump to member"></div>
+    <span id="log-progress" class="muted" role="status"></span>
+    <span class="save-status" id="save-status" role="status"></span>
+    <button type="button" class="btn btn-primary btn-large" id="save-call"
+            title="Save call (⌘S / Ctrl+S)">Save call</button>
+    <button type="button" class="btn btn-danger-ghost" id="delete-call"
+            data-url="{{ url_for('main.delete_call', call_id=call.id) }}">Delete call</button>
+  </footer>
+</form>
+{% endblock %}

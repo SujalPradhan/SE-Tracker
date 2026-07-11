@@ -1,0 +1,36 @@
+<div class="tab-body">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Member</th><th>Role</th><th>Calls Attended</th><th>Silent Calls</th>
+        <th>Calls With Evidence</th><th>Avg Score</th><th>Contribution Status</th>
+        <th>Risk Signal</th><th>Evidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for member, m, dot in summary %}
+      <tr>
+        <td><strong>{{ member.name }}</strong></td>
+        <td class="muted">{{ member.role }}</td>
+        <td>{{ m.calls_attended }} / {{ m.calls_logged }}</td>
+        <td>{{ m.silent_calls }}</td>
+        <td>{{ m.calls_with_evidence }}</td>
+        <td class="avg-cell">{{ m.avg_display }}</td>
+        <td>{{ m.contribution_status }}</td>
+        <td>{{ m.risk_signal }}</td>
+        <td class="muted">{{ m.risk_evidence or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <details class="legend" open>
+    <summary>How these are computed</summary>
+    <ul>
+      {% for label, rule in legend %}
+      <li><strong>{{ label }}</strong> — {{ rule }}</li>
+      {% endfor %}
+      <li class="muted">Average score = mean of per-call totals across all logged calls; an unscored call counts as 0. All values are recomputed live — nothing is stored.</li>
+    </ul>
+  </details>
+</div>

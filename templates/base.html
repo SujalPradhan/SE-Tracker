@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SE-Tracker{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <a class="brand" href="{{ url_for('main.home') }}">SE-Tracker</a>
+      <span class="cohort-badge" title="Cohort — change in Settings">{{ cohort }}</span>
+    </div>
+    <nav class="team-list" aria-label="Teams">
+      {% for info in sidebar_teams %}
+      <a class="team-link{% if team is defined and team and team.id == info.team.id %} active{% endif %}"
+         href="{{ url_for('main.team_page', team_id=info.team.id) }}">
+        <span class="dot dot-{{ info.dot }}" aria-hidden="true"></span>
+        <span class="team-link-body">
+          <span class="team-link-title">Team {{ info.team.display_number }}</span>
+          {% if info.team.project_name %}<span class="team-link-project">{{ info.team.project_name }}</span>{% endif %}
+          <span class="team-link-meta">
+            {{ info.call_count }} call{{ '' if info.call_count == 1 else 's' }}{% if info.last_call_date %} · last {{ info.last_call_date.strftime('%d %b') }}{% endif %}
+          </span>
+        </span>
+      </a>
+      {% endfor %}
+    </nav>
+    <a class="btn btn-ghost sidebar-new-team" href="{{ url_for('main.new_team_form') }}">+ New team</a>
+    <div class="sidebar-foot">
+      <a href="{{ url_for('main.export_all') }}">Export all teams</a>
+      <a href="{{ url_for('main.import_page') }}">Import data</a>
+      <a href="{{ url_for('main.settings') }}">Settings</a>
+      {% if g.ta %}
+      <form method="post" action="{{ url_for('main.logout') }}" class="signout-row">
+        <span class="muted" title="{{ g.ta.email }}">{{ g.ta.name }}</span>
+        <button type="submit" class="link-btn">Sign out</button>
+      </form>
+      {% endif %}
+    </div>
+  </aside>
+  <main class="content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

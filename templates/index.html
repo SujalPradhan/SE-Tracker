@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="empty-state">
+  <h1>Welcome to SE-Tracker</h1>
+  <p>Add your first team to start logging calls. Enter the roster once —
+     every call sheet, milestone grid, and export fills itself in from there.</p>
+  <a class="btn btn-primary" href="{{ url_for('main.new_team_form') }}">+ Add your first team</a>
+</div>
+{% endblock %}

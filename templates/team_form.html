@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit team' if team else 'New team' }} — SE-Tracker{% endblock %}
+{% block content %}
+<h1 class="page-title">{{ 'Edit Team ' + team.display_number if team else 'New team' }}</h1>
+
+<form method="post"
+      action="{{ url_for('main.edit_team', team_id=team.id) if team else url_for('main.create_team') }}"
+      class="team-form">
+  <div class="form-grid">
+    <label>Team number
+      <input name="team_number" required inputmode="numeric" pattern="[0-9]+"
+             value="{{ team.team_number if team else (form.get('team_number', '') if form else '') }}"
+             placeholder="e.g. 96">
+    </label>
+    <label>Project name <span class="muted">(optional)</span>
+      <input name="project_name"
+             value="{{ team.project_name if team else (form.get('project_name', '') if form else '') }}"
+             placeholder="e.g. Campus Eats">
+    </label>
+    <label class="span-2">Default repo URL <span class="muted">(prefills evidence links)</span>
+      <input name="repo_url" type="url"
+             value="{{ team.repo_url if team else (form.get('repo_url', '') if form else '') }}"
+             placeholder="https://github.com/org/repo">
+    </label>
+  </div>
+
+  <h2>Members <span class="muted">(entered once — used everywhere)</span></h2>
+  <table class="member-rows">
+    <thead>
+      <tr><th>Name</th><th>Role</th><th>Email</th></tr>
+    </thead>
+    <tbody id="member-rows">
+      {% for row in member_rows %}
+      <tr>
+        <td>
+          <input type="hidden" name="member_id" value="{{ row.id }}">
+          <input name="member_name" value="{{ row.name }}" placeholder="Full name"
+                 aria-label="Member name" {% if row.id %}required{% endif %}>
+        </td>
+        <td><input name="member_role" value="{{ row.role }}" aria-label="Member role"
+                   placeholder="e.g. Backend Developer + Tester"></td>
+        <td><input name="member_email" type="email" value="{{ row.email }}" aria-label="Member email"
+                   placeholder="name@study.iitm.ac.in"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="button" class="btn btn-ghost" id="add-member-row">+ Add member row</button>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">{{ 'Save team' if team else 'Create team' }}</button>
+    {% if team %}<a class="btn" href="{{ url_for('main.team_page', team_id=team.id) }}">Cancel</a>{% endif %}
+  </div>
+  <p class="muted">Blank rows are ignored. Editing a member updates every call sheet, grid, and export.</p>
+</form>
+
+{% if team %}
+<div class="danger-zone">
+  <h2>Danger zone</h2>
+  <form method="post" action="{{ url_for('main.delete_team', team_id=team.id) }}"
+        data-confirm="Delete Team {{ team.display_number }} with ALL its calls, scores, and milestone data? This cannot be undone.">
+    <button type="submit" class="btn btn-danger-ghost">Delete team</button>
+    <span class="muted">Removes the team and every call, score, and submission it has.</span>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

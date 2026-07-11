@@ -1,0 +1,62 @@
+{% from "_macros.html" import chips_row %}
+<div class="tab-body">
+  <div class="milestone-bar">
+    <div class="milestone-chips" role="group" aria-label="Milestones">
+      {% for m in team.milestones %}
+      <a class="chip chip-nav{% if m == milestone %} active{% endif %}"
+         href="{{ url_for('main.team_page', team_id=team.id, tab='milestones', m=m) }}">{{ m }}</a>
+      {% endfor %}
+    </div>
+    {% if team.next_milestone %}
+    <form method="post" action="{{ url_for('main.add_milestone', team_id=team.id) }}">
+      <button type="submit" class="btn btn-small">+ Add {{ team.next_milestone }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if grid_rows %}
+  <div id="milestone-grid" data-team-id="{{ team.id }}" data-milestone="{{ milestone }}">
+    <table class="data-table grid-table">
+      <thead>
+        <tr>
+          <th>Member</th><th>Report Section</th><th>Code</th><th>Tests</th><th>Demo</th>
+          <th>Evidence Link</th><th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in grid_rows %}
+        <tr data-member-id="{{ row.member.id }}">
+          <td class="member-cell">
+            <strong>{{ row.member.name }}</strong>
+            <span class="muted">{{ row.member.role }}</span>
+          </td>
+          <td><input name="report_section" value="{{ row.report_section }}"
+                     aria-label="Report section — {{ row.member.name }}" placeholder="e.g. Requirements"></td>
+          {% for field in ['code', 'tests', 'demo'] %}
+          <td>
+            <select name="{{ field }}" class="ynd" aria-label="{{ field | capitalize }} — {{ row.member.name }}">
+              <option value="" {% if row[field] == '' %}selected{% endif %}>—</option>
+              <option value="Y" {% if row[field] == 'Y' %}selected{% endif %}>Y</option>
+              <option value="N" {% if row[field] == 'N' %}selected{% endif %}>N</option>
+            </select>
+          </td>
+          {% endfor %}
+          <td><input name="evidence_link" value="{{ row.evidence_link }}"
+                     aria-label="Evidence link — {{ row.member.name }}" placeholder="https://…"></td>
+          <td class="remarks-wrap">
+            <textarea name="remarks" rows="1" aria-label="Remarks — {{ row.member.name }}">{{ row.remarks }}</textarea>
+            {{ chips_row(chips) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="save-bar">
+      <button type="button" class="btn btn-primary" id="save-grid">Save {{ milestone }} grid</button>
+      <span class="save-status" id="grid-status" role="status"></span>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state small"><p>Add team members first — the grid builds itself from the roster.</p></div>
+  {% endif %}
+</div>

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Team {{ team.display_number }} — SE-Tracker{% endblock %}
+{% block content %}
+<header class="team-header">
+  <div>
+    <h1 class="page-title">Team {{ team.display_number }}{% if team.project_name %} <span class="muted">· {{ team.project_name }}</span>{% endif %}</h1>
+    {% if team.repo_url %}
+    <a class="repo-link" href="{{ team.repo_url }}" target="_blank" rel="noopener">{{ team.repo_url }}</a>
+    {% endif %}
+  </div>
+  <div class="team-actions">
+    <a class="btn" href="{{ url_for('main.edit_team_form', team_id=team.id) }}">Edit team</a>
+    <a class="btn" href="{{ url_for('main.export_team', team_id=team.id) }}">Export .xlsx</a>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Team sections">
+  {% for name, label, count in [('calls', 'Calls', team.calls | length),
+                                ('milestones', 'Milestones', team.milestones | length),
+                                ('summary', 'Summary', none)] %}
+  <a class="tab{% if tab == name %} active{% endif %}"
+     href="{{ url_for('main.team_page', team_id=team.id, tab=name) }}">{{ label }}{% if count is not none %} <span class="tab-count">{{ count }}</span>{% endif %}</a>
+  {% endfor %}
+</nav>
+
+{% if tab == 'calls' %}
+  {% include "_tab_calls.html" %}
+{% elif tab == 'milestones' %}
+  {% include "_tab_milestones.html" %}
+{% else %}
+  {% include "_tab_summary.html" %}
+{% endif %}
+{% endblock %}

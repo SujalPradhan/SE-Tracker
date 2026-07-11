@@ -1,0 +1,15 @@
+{% extends "auth_base.html" %}
+{% block title %}Sign in — SE-Tracker{% endblock %}
+{% block card %}
+<h1>Sign in</h1>
+<form method="post" class="auth-form">
+  <label>Email
+    <input name="email" type="email" required autofocus autocomplete="username">
+  </label>
+  <label>Password
+    <input name="password" type="password" required autocomplete="current-password">
+  </label>
+  <button type="submit" class="btn btn-primary">Sign in</button>
+</form>
+<p class="muted">New TA? <a href="{{ url_for('main.register') }}">Create an account</a></p>
+{% endblock %}

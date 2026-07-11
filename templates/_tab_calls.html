@@ -1,0 +1,31 @@
+<div class="tab-body">
+  <form method="post" action="{{ url_for('main.new_call', team_id=team.id) }}" class="inline-form">
+    <button type="submit" class="btn btn-primary">+ New call</button>
+    <span class="muted">Pre-fills the call number, milestone, date, roster, carried tasks, and evidence links.</span>
+  </form>
+
+  {% if calls %}
+  <table class="data-table">
+    <thead>
+      <tr><th>Call #</th><th>Week</th><th>Milestone</th><th>Date</th><th>Present</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for call in calls %}
+      <tr data-href="{{ url_for('main.call_form', call_id=call.id) }}">
+        <td>#{{ call.call_no }}</td>
+        <td>{{ call.week or '—' }}</td>
+        <td>{{ call.milestone }}</td>
+        <td>{{ call.date.strftime('%d %b %Y') if call.date else '—' }}</td>
+        <td>{{ call.entries | selectattr('present') | list | length }} / {{ call.entries | length }}</td>
+        <td><a class="btn btn-small" href="{{ url_for('main.call_form', call_id=call.id) }}">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state small">
+    <p>No calls logged yet. Click <strong>New call</strong> — everything except the live
+       scores and notes is pre-filled for you.</p>
+  </div>
+  {% endif %}
+</div>
