@@ -1,4 +1,6 @@
+{% set status_class = {'green': 'active', 'yellow': 'risk', 'red': 'low', 'gray': 'none'} %}
 <div class="tab-body">
+  <div class="table-card table-scroll">
   <table class="data-table">
     <thead>
       <tr>
@@ -16,13 +18,14 @@
         <td>{{ m.silent_calls }}</td>
         <td>{{ m.calls_with_evidence }}</td>
         <td class="avg-cell">{{ m.avg_display }}</td>
-        <td>{{ m.contribution_status }}</td>
+        <td><span class="status-pill status-{{ status_class[dot] }}">{{ m.contribution_status }}</span></td>
         <td>{{ m.risk_signal }}</td>
-        <td class="muted">{{ m.risk_evidence or '—' }}</td>
+        <td class="muted small-text">{{ m.risk_evidence or '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
 
   <details class="legend" open>
     <summary>How these are computed</summary>

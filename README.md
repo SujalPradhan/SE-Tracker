@@ -65,12 +65,42 @@ runs the server can reset a password from a Flask shell if someone forgets.
    evidence counts, average score, contribution status, and risk flags — with
    the threshold rules spelled out in the legend so you can defend a flag.
 
+## Overview dashboard
+
+Sidebar → **Overview** (`/dashboard`) shows the signed-in TA's own students:
+KPI tiles, team ranking, status per team, attendance vs. score (one dot per
+student), attendance/speaking and score trends by call, a milestone heatmap,
+per-team drill-down with sparklines, and a "Needs attention" list. Everything
+is computed live in `overview.py` from the same `metrics.py` rules as the
+Summary tab.
+
+## Demo — `/demo`
+
+A read-only TA view with seeded sample data (four teams), for showing the tool
+to someone without an account. It's seeded on first visit (`demo_seed.py`).
+Writes are refused on the server, not just hidden in the UI, and the demo
+account never shows up in `/admin`.
+
+## Admin overview — `/admin`
+
+A read-only, cross-TA version of the overview for course staff. It adds a TA
+filter, a TA comparison, calls per week, risk reasons, a searchable and
+sortable table of every student, per-team detail pages, and an export of all
+teams (one folder per TA). Sign-in is **Google only**: the verified email must be on the allowlist
+(`DEFAULT_ADMIN_EMAILS` in `admin.py`, or the `ADMIN_EMAILS` env var). The
+list is re-checked on every request. Admin sessions are separate from TA
+sessions.
+
+Local testing without Google: run with `ADMIN_DEV_EMAIL=<allowlisted email>
+python app.py`. It is honoured only in debug mode.
+
 ## Deployment
 
-See [DEPLOY.md](DEPLOY.md) — a complete PythonAnywhere (free tier)
-walkthrough: your local `se_tracker.db` is uploaded as-is, no database
-migration. `create_app` honors two env vars for any host: `DATABASE_URL`
-(relocate the DB) and `HTTPS_ONLY=1` (mark session cookies Secure).
+See [DEPLOY.md](DEPLOY.md): a Google Cloud e2-micro VM in Mumbai running
+gunicorn behind Caddy (automatic HTTPS), with nightly SQLite backups to Cloud
+Storage. Ready-made files are in `deploy/gcp/`. `create_app` honors
+`DATABASE_URL`, `HTTPS_ONLY=1`, `SECRET_KEY`, `BEHIND_PROXY=1`, and the Google
+OAuth variables.
 
 ## Importing existing Excel data
 
@@ -81,7 +111,7 @@ paste the JSON, and hit Import. Everything is created under your account.
 
 - All-or-nothing: invalid payloads import **nothing** and list every problem
   with its location.
-- Team numbers that already exist are rejected — delete the old team first
+- Team numbers that already exist in your account are rejected — delete the old team first
   (Edit team → **Delete team**) or renumber in the JSON.
 - "Tasks for next call" is reconstructed from the following call's
   "Tasks Assigned (Prev Call)", so carry-forward keeps working on imported
@@ -89,8 +119,8 @@ paste the JSON, and hit Import. Everything is created under your account.
 
 ## Changing the cohort label
 
-Sidebar → **Settings** → edit *Cohort label* (default `MAY2026`). It's used
-in export filenames, e.g. `MAY2026-Team-096.xlsx`. Stored in the `setting`
+Sidebar → **Settings** → edit *Cohort label* (default `SEP2026`). It's used
+in export filenames, e.g. `SEP2026-Team-096.xlsx`. Stored in the `setting`
 table, so it applies app-wide.
 
 ## Adding M6 to a team
@@ -113,11 +143,16 @@ ever drifts from the legacy format, the test suite fails.
 
 | File | What it does |
 | --- | --- |
-| `app.py` | Flask app + all routes (`python app.py` to run) |
+| `app.py` | Flask app + TA routes, `/demo` (`python app.py` to run) |
+| `admin.py` | `/admin` blueprint: Google Sign-In, allowlist, cross-TA overview |
+| `overview.py` | Dashboard numbers for any set of teams (TA, demo, admin) |
+| `demo_seed.py` | Seeded read-only demo account |
 | `models.py` | SQLAlchemy models (Team, Member, Call, CallEntry, MilestoneSubmission, Setting) |
 | `services.py` | Carry-forward logic, milestone grid prefill, remark chips, sidebar roll-ups |
 | `metrics.py` | Pure computed metrics (avg score, statuses, risk rules) — fully unit-tested |
 | `export.py` | Legacy-format Excel export via openpyxl |
-| `tests/` | Metrics, carry-forward, export format, and auth/scoping tests |
+| `static/` | `app.css` (design tokens, light/dark), `app.js` (forms), `motion.js` (animation), `overview.js` (charts) |
+| `deploy/gcp/` | VM setup script, systemd unit, Caddyfile, backup script |
+| `tests/` | Metrics, carry-forward, export, auth/scoping, overview, demo, admin tests |
 
 See `NEXT_SPRINT.md` for what's deliberately out of scope in v1.

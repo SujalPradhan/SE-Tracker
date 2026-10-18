@@ -4,6 +4,7 @@
 
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const CSRF = ($('meta[name="csrf-token"]') || { content: "" }).content;
 
   /* ---------- Y/N toggles ---------- */
 
@@ -117,7 +118,7 @@
     try {
       const res = await fetch(url, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
         body: JSON.stringify(payload),
       });
       const body = await res.json().catch(() => ({}));
@@ -185,6 +186,13 @@
       input.addEventListener("input", sync);
       sync();
     });
+
+    if (form.dataset.readonly === "1") {
+      // Demo: show the call as-is — no drafts, no saving.
+      $$(".member-card", form).forEach(refreshCard);
+      refreshProgressHint();
+      return;
+    }
 
     function collect() {
       return {
@@ -296,6 +304,11 @@
         const f = document.createElement("form");
         f.method = "post";
         f.action = del.dataset.url;
+        const token = document.createElement("input");
+        token.type = "hidden";
+        token.name = "csrf_token";
+        token.value = CSRF;
+        f.appendChild(token);
         document.body.appendChild(f);
         localStorage.removeItem(draftKey);
         f.submit();
@@ -310,7 +323,7 @@
 
   function initGrid() {
     const grid = $("#milestone-grid");
-    if (!grid) return;
+    if (!grid || !$("#save-grid")) return;
 
     async function save() {
       const rows = $$("tr[data-member-id]", grid).map((tr) => {
@@ -371,7 +384,7 @@
       try {
         const res = await fetch("/api/import", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
           body: JSON.stringify(payload),
         });
         const body = await res.json();

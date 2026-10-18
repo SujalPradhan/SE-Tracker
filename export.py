@@ -160,10 +160,15 @@ def workbook_bytes(team):
     return buf.getvalue()
 
 
-def all_teams_zip(teams, cohort):
+def all_teams_zip(teams, cohort, folder_for=None):
+    """Zip of per-team workbooks. folder_for(team) → subfolder name, used by the
+    admin export so two TAs' "Team 001" don't collide."""
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for team in teams:
-            zf.writestr(team_filename(team, cohort), workbook_bytes(team))
+            name = team_filename(team, cohort)
+            if folder_for:
+                name = f"{folder_for(team)}/{name}"
+            zf.writestr(name, workbook_bytes(team))
     buf.seek(0)
     return buf

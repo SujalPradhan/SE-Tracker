@@ -1,26 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Team {{ team.display_number }} — SE-Tracker{% endblock %}
 {% block content %}
-<header class="team-header">
-  <div>
-    <h1 class="page-title">Team {{ team.display_number }}{% if team.project_name %} <span class="muted">· {{ team.project_name }}</span>{% endif %}</h1>
-    {% if team.repo_url %}
-    <a class="repo-link" href="{{ team.repo_url }}" target="_blank" rel="noopener">{{ team.repo_url }}</a>
-    {% endif %}
+<header class="page-head">
+  <div class="page-head-main">
+    <p class="eyebrow">Team {{ team.display_number }}</p>
+    <h1 class="page-title">{{ team.project_name or ('Team ' + team.display_number) }}</h1>
+    <div class="page-meta">
+      <span class="meta-item"><svg class="ico"><use href="#i-users"/></svg>{{ team.members | length }} member{{ '' if team.members | length == 1 else 's' }}</span>
+      <span class="meta-item"><svg class="ico"><use href="#i-phone"/></svg>{{ team.calls | length }} call{{ '' if team.calls | length == 1 else 's' }}</span>
+      {% if team.repo_url %}
+      <a class="meta-item repo-link" href="{{ team.repo_url }}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-external"/></svg>{{ team.repo_url | replace('https://', '') }}</a>
+      {% endif %}
+    </div>
   </div>
   <div class="team-actions">
-    <a class="btn" href="{{ url_for('main.edit_team_form', team_id=team.id) }}">Edit team</a>
-    <a class="btn" href="{{ url_for('main.export_team', team_id=team.id) }}">Export .xlsx</a>
+    {% if not read_only %}
+    <a class="btn" href="{{ url_for('main.edit_team_form', team_id=team.id) }}"><svg class="ico"><use href="#i-edit"/></svg>Edit team</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('main.export_team', team_id=team.id) }}"><svg class="ico"><use href="#i-download"/></svg>Export .xlsx</a>
   </div>
 </header>
 
 <nav class="tabs" aria-label="Team sections">
-  {% for name, label, count in [('calls', 'Calls', team.calls | length),
-                                ('milestones', 'Milestones', team.milestones | length),
-                                ('summary', 'Summary', none)] %}
+  {% for name, label, icon, count in [('calls', 'Calls', 'i-phone', team.calls | length),
+                                ('milestones', 'Milestones', 'i-flag', team.milestones | length),
+                                ('summary', 'Summary', 'i-chart', none)] %}
   <a class="tab{% if tab == name %} active{% endif %}"
-     href="{{ url_for('main.team_page', team_id=team.id, tab=name) }}">{{ label }}{% if count is not none %} <span class="tab-count">{{ count }}</span>{% endif %}</a>
+     href="{{ url_for('main.team_page', team_id=team.id, tab=name) }}"><svg class="ico"><use href="#{{ icon }}"/></svg>{{ label }}{% if count is not none %} <span class="tab-count">{{ count }}</span>{% endif %}</a>
   {% endfor %}
+  <span class="tab-indicator" aria-hidden="true"></span>
 </nav>
 
 {% if tab == 'calls' %}

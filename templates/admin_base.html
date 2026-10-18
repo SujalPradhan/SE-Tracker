@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  {% include "_head.html" %}
+  <title>{% block title %}Admin — SE-Tracker{% endblock %}</title>
+</head>
+<body class="admin-page">
+{% include "_icons.html" %}
+<header class="admin-bar">
+  <a class="brand" href="{{ url_for('admin.dashboard') }}"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>SE-Tracker</a>
+  <span class="admin-tag"><svg class="ico"><use href="#i-shield"/></svg>Admin</span>
+  <span class="cohort-badge">{{ cohort }}</span>
+  <span class="admin-bar-spacer"></span>
+  {% if g.admin_email %}
+  <form method="post" action="{{ url_for('admin.logout') }}" class="user-chip">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <span class="avatar" aria-hidden="true">{{ (session.get('admin_name') or g.admin_email)[:1] | upper }}</span>
+    <span class="user-meta">
+      <span class="user-name">{{ session.get('admin_name') or g.admin_email }}</span>
+      <span class="user-email">{{ g.admin_email }}</span>
+    </span>
+    <button type="submit" class="icon-btn" title="Sign out" aria-label="Sign out"><svg class="ico"><use href="#i-logout"/></svg></button>
+  </form>
+  {% endif %}
+</header>
+<main class="admin-content">
+  <div class="page">
+  {% block content %}{% endblock %}
+  </div>
+</main>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='motion.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% extends "admin_base.html" %}
+{% block title %}Team {{ team.display_number }} — Admin — SE-Tracker{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="page-head-main">
+    <a class="back-link" href="{{ url_for('admin.dashboard') }}"><svg class="ico"><use href="#i-back"/></svg>Overview</a>
+    <p class="eyebrow">Team {{ team.display_number }} · {{ owner.name }}</p>
+    <h1 class="page-title">{{ team.project_name or ('Team ' + team.display_number) }}</h1>
+    <div class="page-meta">
+      <span class="meta-item"><svg class="ico"><use href="#i-users"/></svg>{{ team.members | length }} members</span>
+      <span class="meta-item"><svg class="ico"><use href="#i-phone"/></svg>{{ team.calls | length }} calls</span>
+      {% if team.repo_url %}<a class="meta-item repo-link" href="{{ team.repo_url }}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-external"/></svg>{{ team.repo_url | replace('https://', '') }}</a>{% endif %}
+    </div>
+  </div>
+  <div class="team-actions">
+    <a class="btn" href="{{ url_for('admin.export_team', team_id=team.id) }}"><svg class="ico"><use href="#i-download"/></svg>Export .xlsx</a>
+  </div>
+</header>
+{% include "_overview.html" %}
+<section class="card reveal admin-summary">
+  <h2 class="card-title">Summary</h2>
+  {% include "_tab_summary.html" %}
+</section>
+{% endblock %}
+{% block scripts %}{% include "_chart_scripts.html" %}{% endblock %}

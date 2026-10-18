@@ -1,0 +1,25 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin overview — SE-Tracker{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="page-head-main">
+    <p class="eyebrow">All TAs · {{ cohort }}</p>
+    <h1 class="page-title">{{ ta_filter.name if ta_filter else 'Course overview' }}</h1>
+  </div>
+  {% if data.teams %}
+  <div class="team-actions">
+    <a class="btn" href="{{ url_for('admin.export_all') }}"><svg class="ico"><use href="#i-download"/></svg>Export all</a>
+  </div>
+  {% endif %}
+</header>
+{% if all_tas %}
+<nav class="filter-row segmented" aria-label="Filter by TA">
+  <a class="chip chip-nav{% if not ta_filter %} active{% endif %}" href="{{ url_for('admin.dashboard') }}">All TAs</a>
+  {% for ta in all_tas %}
+  <a class="chip chip-nav{% if ta_filter and ta_filter.id == ta.id %} active{% endif %}" href="{{ url_for('admin.dashboard', ta=ta.id) }}">{{ ta.name }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+{% include "_overview.html" %}
+{% endblock %}
+{% block scripts %}{% include "_chart_scripts.html" %}{% endblock %}

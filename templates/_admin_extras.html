@@ -1,0 +1,88 @@
+{% set extras = data.admin %}
+<section class="card span-7 reveal">
+  <div class="card-head-row">
+    <h2 class="card-title">TAs</h2>
+    <span class="card-hint">{{ extras.per_ta | length }} account{{ '' if extras.per_ta | length == 1 else 's' }}</span>
+  </div>
+  <div class="table-scroll">
+    <table class="data-table compact">
+      <thead><tr><th>TA</th><th>Teams</th><th>Students</th><th>Calls</th><th>Avg score</th><th>Flagged</th><th>Last call</th></tr></thead>
+      <tbody>
+        {% for r in extras.per_ta %}
+        <tr data-href="{{ url_for('admin.dashboard', ta=r.id) }}">
+          <td><span class="ta-cell"><span class="avatar" aria-hidden="true">{{ r.name[:1] | upper }}</span><span><strong>{{ r.name }}</strong><span class="muted small-text block">{{ r.email }}</span></span></span></td>
+          <td>{{ r.teams }}</td>
+          <td>{{ r.students }}</td>
+          <td>{{ r.calls }}</td>
+          <td>
+            <span class="inline-bar"><span class="bar-track"><span class="bar-fill series-1-bg" style="--w: {{ ((r.avg or 0) / data.max_score * 100) | round }}%"></span></span>{{ r.avg if r.avg is not none else '—' }}</span>
+          </td>
+          <td>{% if r.flagged %}<span class="flag-count"><svg class="ico"><use href="#i-alert"/></svg>{{ r.flagged }}</span>{% else %}0{% endif %}</td>
+          <td class="muted">{{ r.last_call | short_date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card span-5 reveal">
+  <div class="card-head-row">
+    <h2 class="card-title">Calls per week</h2>
+    <span class="card-hint">last 12 weeks</span>
+  </div>
+  <div class="chart-box chart-mid"><canvas id="c-weekly" aria-label="Calls logged per week"></canvas></div>
+  <h3 class="sub-title">Risk reasons</h3>
+  {% set top = (data.reasons | map(attribute=1) | max) if data.reasons else 1 %}
+  <ul class="hbar-list">
+    {% for reason, n in data.reasons %}
+    <li><span class="hbar-label">{{ reason }}</span><span class="bar-track"><span class="bar-fill status-bg-low" style="--w: {{ (n / top * 100) | round }}%"></span></span><span class="hbar-val">{{ n }}</span></li>
+    {% else %}
+    <li class="muted">No risk flags.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card span-12 reveal" id="students">
+  <div class="card-head-row">
+    <h2 class="card-title">All students</h2>
+    <div class="table-tools">
+      <label class="search"><svg class="ico"><use href="#i-search"/></svg><input type="search" id="student-search" placeholder="Search name, team, TA" aria-label="Search students"></label>
+      <div class="segmented" role="group" aria-label="Filter by status" id="status-filter">
+        <button type="button" class="chip chip-nav active" data-status="">All</button>
+        <button type="button" class="chip chip-nav" data-status="flagged">Flagged</button>
+        {% for key in ['active', 'risk', 'low', 'none'] %}
+        <button type="button" class="chip chip-nav" data-status="{{ key }}">{{ data.status_labels[key] }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="table-scroll student-table-wrap">
+    <table class="data-table compact sortable" id="student-table">
+      <thead>
+        <tr>
+          <th data-sort="text">Student</th><th data-sort="text">Team</th><th data-sort="text">TA</th>
+          <th data-sort="num">Avg</th><th data-sort="num">Attendance</th><th data-sort="num">Spoke</th>
+          <th data-sort="num">Evidence</th><th>Trend</th><th data-sort="text">Flags</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in data.students %}
+        {% set t = data.teams | selectattr('id', 'equalto', s.team_id) | first %}
+        <tr data-status="{{ s.status }}" data-flagged="{{ 1 if s.reasons else 0 }}" data-href="{{ t.url }}">
+          <td data-v="{{ s.name }}"><strong>{{ s.name }}</strong><span class="muted small-text block">{{ s.role }}</span></td>
+          <td data-v="{{ s.team }}">{{ s.team }}</td>
+          <td data-v="{{ s.ta }}">{{ s.ta }}</td>
+          <td data-v="{{ s.avg if s.avg is not none else -1 }}"><span class="status-pill status-{{ s.status }}">{{ s.avg_display }}</span></td>
+          <td data-v="{{ s.attendance if s.attendance is not none else -1 }}">{{ s.attendance | pct }}</td>
+          <td data-v="{{ s.speaking if s.speaking is not none else -1 }}">{{ s.speaking | pct }}</td>
+          <td data-v="{{ s.evidence if s.evidence is not none else -1 }}">{{ s.evidence | pct }}</td>
+          <td><svg class="spark" data-series='{{ s.series | tojson }}' data-max="{{ data.max_score }}" viewBox="0 0 80 22" preserveAspectRatio="none" aria-hidden="true"></svg></td>
+          <td data-v="{{ s.reasons | length }}">{% if s.reasons %}<span class="reason-chips">{% for r in s.reasons %}<span class="reason">{{ r }}</span>{% endfor %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted table-empty" id="student-empty" hidden>No matches.</p>
+  </div>
+</section>

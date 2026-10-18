@@ -1,21 +1,38 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include "_head.html" %}
   <title>{% block title %}SE-Tracker{% endblock %}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body class="auth-page">
-  <main class="auth-card">
-    <div class="auth-brand">SE-Tracker <span class="cohort-badge">{{ cohort }}</span></div>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="flash flash-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endwith %}
-    {% block card %}{% endblock %}
+{% include "_icons.html" %}
+  <div class="auth-backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
+    <div class="auth-grid"></div>
+  </div>
+  <main class="auth-shell">
+    <section class="auth-pitch">
+      <a class="brand brand-lg" href="{{ url_for('main.login') }}"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>SE-Tracker</a>
+      <h2 class="auth-tagline">Client calls, milestones and risk — <span class="grad-text">one place, zero re-typing.</span></h2>
+      <ul class="auth-points">
+        <li><svg class="ico"><use href="#i-phone"/></svg>One-click prefilled call sheets</li>
+        <li><svg class="ico"><use href="#i-chart"/></svg>Live scores, attendance &amp; risk flags</li>
+        <li><svg class="ico"><use href="#i-download"/></svg>Legacy-format Excel export</li>
+      </ul>
+      <span class="cohort-badge">{{ cohort }}</span>
+    </section>
+    <section class="auth-card">
+      <div class="toasts" aria-live="polite">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      </div>
+      {% block card %}{% endblock %}
+    </section>
   </main>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='motion.js') }}"></script>
 </body>
 </html>

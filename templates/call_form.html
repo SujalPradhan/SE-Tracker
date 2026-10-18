@@ -2,10 +2,11 @@
 {% extends "base.html" %}
 {% block title %}Call #{{ call.call_no }} — Team {{ team.display_number }} — SE-Tracker{% endblock %}
 {% block content %}
-<form id="call-form" data-call-id="{{ call.id }}" autocomplete="off">
-  <header class="call-header">
-    <div>
-      <a class="back-link" href="{{ url_for('main.team_page', team_id=team.id, tab='calls') }}">← Team {{ team.display_number }}</a>
+<form id="call-form" data-call-id="{{ call.id }}" autocomplete="off"{% if read_only %} data-readonly="1"{% endif %}>
+<fieldset class="bare"{% if read_only %} disabled{% endif %}>
+  <header class="page-head call-header">
+    <div class="page-head-main">
+      <a class="back-link" href="{{ url_for('main.team_page', team_id=team.id, tab='calls') }}"><svg class="ico"><use href="#i-back"/></svg>Team {{ team.display_number }}{% if team.project_name %} · {{ team.project_name }}{% endif %}</a>
       <h1 class="page-title">Call #{{ call.call_no }}</h1>
     </div>
     <div class="call-fields">
@@ -34,9 +35,12 @@
     {% for member, entry in member_entries %}
     <section class="member-card" data-member-id="{{ member.id }}" aria-label="{{ member.name }}">
       <header class="card-head">
-        <div>
-          <h2>{{ member.name }}</h2>
-          <span class="muted">{{ member.role }}</span>
+        <div class="card-who">
+          <span class="avatar avatar-lg" aria-hidden="true">{{ member.name[:1] | upper }}</span>
+          <div>
+            <h2>{{ member.name }}</h2>
+            <span class="muted">{{ member.role }}</span>
+          </div>
         </div>
         <div class="card-total" title="Sum of the entered rubric scores">
           <span class="muted">Total</span>
@@ -62,14 +66,14 @@
         <span class="evidence-row">
           <input name="evidence_link" value="{{ entry.evidence_link }}" aria-label="Evidence link"
                  placeholder="https://…">
-          <a class="btn btn-small evidence-open" target="_blank" rel="noopener" hidden>Open ↗</a>
+          <a class="btn btn-small evidence-open" target="_blank" rel="noopener" hidden>Open<svg class="ico"><use href="#i-external"/></svg></a>
         </span>
       </label>
 
       <div class="card-row score-row">
         {% for name, label, max in score_fields %}
         <div class="score">
-          <span class="field-label">{{ label }} (0–{{ max }})</span>
+          <span class="field-label">{{ label }} <span class="muted">0–{{ max }}</span></span>
           <div class="stepper">
             <button type="button" class="step" data-delta="-0.5" aria-label="Decrease {{ label }}">−</button>
             <input class="score-input" name="{{ name }}" type="number" min="0" max="{{ max }}" step="0.5"
@@ -87,21 +91,24 @@
         </label>
         <label class="remarks-wrap">TA remarks
           <textarea name="remarks" rows="2">{{ entry.remarks }}</textarea>
-          {{ chips_row(chips) }}
+          {% if not read_only %}{{ chips_row(chips) }}{% endif %}
         </label>
       </div>
     </section>
     {% endfor %}
   </div>
+</fieldset>
 
   <footer class="save-bar sticky">
     <div class="member-pills" id="member-pills" role="group" aria-label="Jump to member"></div>
     <span id="log-progress" class="muted" role="status"></span>
+    {% if not read_only %}
     <span class="save-status" id="save-status" role="status"></span>
+    <button type="button" class="btn btn-danger-ghost" id="delete-call"
+            data-url="{{ url_for('main.delete_call', call_id=call.id) }}"><svg class="ico"><use href="#i-trash"/></svg>Delete</button>
     <button type="button" class="btn btn-primary btn-large" id="save-call"
             title="Save call (⌘S / Ctrl+S)">Save call</button>
-    <button type="button" class="btn btn-danger-ghost" id="delete-call"
-            data-url="{{ url_for('main.delete_call', call_id=call.id) }}">Delete call</button>
+    {% endif %}
   </footer>
 </form>
 {% endblock %}

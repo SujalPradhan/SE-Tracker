@@ -287,10 +287,9 @@ def import_payload(ta, payload):
              for i, t in enumerate(payload["teams"])]
 
     numbers = [t["team_number"] for t in teams if t["team_number"] is not None]
-    for existing in Team.query.filter(Team.team_number.in_(numbers)):
-        owner = "you" if existing.ta_id == ta.id else "another TA"
+    for existing in Team.query.filter(Team.ta_id == ta.id, Team.team_number.in_(numbers)):
         errors.append(
-            f"Team {existing.display_number} already exists in the app (owned by {owner}) — "
+            f"Team {existing.display_number} already exists in your account — "
             "delete it (Edit team → Delete team) or renumber it in the payload."
         )
 

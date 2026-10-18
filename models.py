@@ -14,7 +14,7 @@ db = SQLAlchemy()
 
 DEFAULT_MILESTONES = ["M1", "M2", "M3", "M4", "M5"]
 MAX_MILESTONES = 6
-DEFAULT_COHORT = "MAY2026"
+DEFAULT_COHORT = "SEP2026"
 
 # (field name, label, max) for the three rubric items. Min is 0, step 0.5.
 SCORE_FIELDS = [
@@ -67,7 +67,8 @@ class Team(db.Model):
     # Nullable so adding this column to a pre-TA database stays a pure
     # ALTER TABLE; rows are backfilled to a default TA on startup.
     ta_id = db.Column(db.Integer, db.ForeignKey("ta.id"), nullable=True)
-    team_number = db.Column(db.Integer, unique=True, nullable=False)
+    # Unique per TA, not app-wide: two TAs (and the demo) may each have Team 1.
+    team_number = db.Column(db.Integer, nullable=False)
     project_name = db.Column(db.String, nullable=False, default="")
     repo_url = db.Column(db.String, nullable=False, default="")
     milestones_json = db.Column(
@@ -83,6 +84,8 @@ class Team(db.Model):
     submissions = db.relationship(
         "MilestoneSubmission", backref="team", cascade="all, delete-orphan"
     )
+
+    __table_args__ = (db.UniqueConstraint("ta_id", "team_number"),)
 
     @property
     def display_number(self):

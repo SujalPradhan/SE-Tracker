@@ -1,15 +1,22 @@
 {% extends "auth_base.html" %}
 {% block title %}Sign in — SE-Tracker{% endblock %}
 {% block card %}
-<h1>Sign in</h1>
+<h1>Welcome back</h1>
+<p class="muted auth-sub">Sign in to your TA account.</p>
 <form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Email
-    <input name="email" type="email" required autofocus autocomplete="username">
+    <input name="email" type="email" required autofocus autocomplete="username" placeholder="you@study.iitm.ac.in">
   </label>
   <label>Password
-    <input name="password" type="password" required autocomplete="current-password">
+    <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
   </label>
-  <button type="submit" class="btn btn-primary">Sign in</button>
+  <button type="submit" class="btn btn-primary btn-block">Sign in</button>
 </form>
-<p class="muted">New TA? <a href="{{ url_for('main.register') }}">Create an account</a></p>
+<p class="muted auth-switch">New TA? <a href="{{ url_for('main.register') }}">Create an account</a></p>
+<div class="auth-divider"><span>or</span></div>
+<div class="auth-alt">
+  <a class="btn btn-block" href="{{ url_for('main.demo') }}"><svg class="ico"><use href="#i-eye"/></svg>Explore the demo</a>
+  <a class="btn btn-block btn-ghost" href="{{ url_for('admin.login') }}"><svg class="ico"><use href="#i-shield"/></svg>Admin sign-in</a>
+</div>
 {% endblock %}

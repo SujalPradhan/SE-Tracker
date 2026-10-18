@@ -1,18 +1,37 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include "_head.html" %}
   <title>{% block title %}SE-Tracker{% endblock %}</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  {% block head %}{% endblock %}
 </head>
-<body>
+<body{% if read_only %} data-readonly="1"{% endif %}>
+{% include "_icons.html" %}
 <div class="layout">
-  <aside class="sidebar">
+  <header class="topbar">
+    <button type="button" class="icon-btn" id="nav-toggle" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+      <svg class="ico"><use href="#i-menu"/></svg>
+    </button>
+    <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>SE-Tracker</a>
+    <span class="cohort-badge">{{ cohort }}</span>
+  </header>
+  <div class="scrim" id="nav-scrim" hidden></div>
+
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
-      <a class="brand" href="{{ url_for('main.home') }}">SE-Tracker</a>
-      <span class="cohort-badge" title="Cohort — change in Settings">{{ cohort }}</span>
+      <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>SE-Tracker</a>
+      <span class="cohort-badge" title="Cohort{% if not read_only %} — change in Settings{% endif %}">{{ cohort }}</span>
+    </div>
+
+    <nav class="nav-primary" aria-label="Main">
+      <a class="nav-item{% if request.endpoint == 'main.dashboard' %} active{% endif %}" href="{{ url_for('main.dashboard') }}">
+        <svg class="ico"><use href="#i-grid"/></svg>Overview
+      </a>
+    </nav>
+
+    <div class="nav-section">
+      <span>Teams</span>
+      <span class="nav-count">{{ sidebar_teams | length }}</span>
     </div>
     <nav class="team-list" aria-label="Teams">
       {% for info in sidebar_teams %}
@@ -27,30 +46,60 @@
           </span>
         </span>
       </a>
+      {% else %}
+      <p class="nav-empty">No teams yet</p>
       {% endfor %}
     </nav>
-    <a class="btn btn-ghost sidebar-new-team" href="{{ url_for('main.new_team_form') }}">+ New team</a>
+    {% if not read_only %}
+    <a class="btn btn-ghost sidebar-new-team" href="{{ url_for('main.new_team_form') }}"><svg class="ico"><use href="#i-plus"/></svg>New team</a>
+    {% endif %}
+
     <div class="sidebar-foot">
-      <a href="{{ url_for('main.export_all') }}">Export all teams</a>
-      <a href="{{ url_for('main.import_page') }}">Import data</a>
-      <a href="{{ url_for('main.settings') }}">Settings</a>
+      {% if not read_only %}
+      <a class="nav-item" href="{{ url_for('main.import_page') }}"><svg class="ico"><use href="#i-upload"/></svg>Import data</a>
+      {% endif %}
+      <a class="nav-item" href="{{ url_for('main.export_all') }}"><svg class="ico"><use href="#i-download"/></svg>Export all teams</a>
+      {% if not read_only %}
+      <a class="nav-item{% if request.endpoint == 'main.settings' %} active{% endif %}" href="{{ url_for('main.settings') }}"><svg class="ico"><use href="#i-settings"/></svg>Settings</a>
+      {% endif %}
       {% if g.ta %}
-      <form method="post" action="{{ url_for('main.logout') }}" class="signout-row">
-        <span class="muted" title="{{ g.ta.email }}">{{ g.ta.name }}</span>
-        <button type="submit" class="link-btn">Sign out</button>
+      <form method="post" action="{{ url_for('main.logout') }}" class="user-chip">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <span class="avatar" aria-hidden="true">{{ g.ta.name[:1] | upper }}</span>
+        <span class="user-meta">
+          <span class="user-name">{{ g.ta.name }}</span>
+          <span class="user-email">{{ 'Read-only demo' if read_only else g.ta.email }}</span>
+        </span>
+        <button type="submit" class="icon-btn" title="{{ 'Exit demo' if read_only else 'Sign out' }}" aria-label="{{ 'Exit demo' if read_only else 'Sign out' }}">
+          <svg class="ico"><use href="#i-logout"/></svg>
+        </button>
       </form>
       {% endif %}
     </div>
   </aside>
-  <main class="content">
+
+  <main class="content" id="content">
+    {% if read_only %}
+    <div class="demo-banner" role="note">
+      <span class="demo-pill"><svg class="ico"><use href="#i-eye"/></svg>Demo</span>
+      <span>Sample data · read-only</span>
+      <a href="{{ url_for('main.login') }}" class="demo-cta">Sign in as a TA</a>
+    </div>
+    {% endif %}
+    <div class="toasts" aria-live="polite">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="flash flash-{{ category }}">{{ message }}</div>
       {% endfor %}
     {% endwith %}
+    </div>
+    <div class="page">
     {% block content %}{% endblock %}
+    </div>
   </main>
 </div>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='motion.js') }}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

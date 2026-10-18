@@ -1,31 +1,44 @@
 <div class="tab-body">
-  <form method="post" action="{{ url_for('main.new_call', team_id=team.id) }}" class="inline-form">
-    <button type="submit" class="btn btn-primary">+ New call</button>
+  {% if not read_only %}
+  <form method="post" action="{{ url_for('main.new_call', team_id=team.id) }}" class="inline-form callout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary"><svg class="ico"><use href="#i-plus"/></svg>New call</button>
     <span class="muted">Pre-fills the call number, milestone, date, roster, carried tasks, and evidence links.</span>
   </form>
+  {% endif %}
 
   {% if calls %}
+  <div class="table-card">
   <table class="data-table">
     <thead>
       <tr><th>Call #</th><th>Week</th><th>Milestone</th><th>Date</th><th>Present</th><th></th></tr>
     </thead>
     <tbody>
       {% for call in calls %}
+      {% set present = call.entries | selectattr('present') | list | length %}
+      {% set total = call.entries | length %}
       <tr data-href="{{ url_for('main.call_form', call_id=call.id) }}">
-        <td>#{{ call.call_no }}</td>
+        <td><span class="call-no">#{{ call.call_no }}</span></td>
         <td>{{ call.week or '—' }}</td>
-        <td>{{ call.milestone }}</td>
+        <td><span class="tag">{{ call.milestone }}</span></td>
         <td>{{ call.date.strftime('%d %b %Y') if call.date else '—' }}</td>
-        <td>{{ call.entries | selectattr('present') | list | length }} / {{ call.entries | length }}</td>
-        <td><a class="btn btn-small" href="{{ url_for('main.call_form', call_id=call.id) }}">Open</a></td>
+        <td>
+          <span class="attend">
+            <span class="meter"><span class="meter-fill" style="--w: {{ (present / total * 100) | round if total else 0 }}%"></span></span>
+            {{ present }} / {{ total }}
+          </span>
+        </td>
+        <td class="row-action"><a class="btn btn-small" href="{{ url_for('main.call_form', call_id=call.id) }}">Open</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div class="empty-state small">
-    <p>No calls logged yet. Click <strong>New call</strong> — everything except the live
-       scores and notes is pre-filled for you.</p>
+    <svg class="ico empty-ico"><use href="#i-phone"/></svg>
+    <p>No calls logged yet.{% if not read_only %} Click <strong>New call</strong> — everything except the live
+       scores and notes is pre-filled for you.{% endif %}</p>
   </div>
   {% endif %}
 </div>

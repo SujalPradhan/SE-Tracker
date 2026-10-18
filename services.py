@@ -176,13 +176,17 @@ def save_milestone_grid(team, milestone, rows):
     db.session.commit()
 
 
-def remark_chips(limit=6):
-    """The TA's most-used remarks as tappable chips, defaults always included."""
-    counts = Counter(
-        e.remarks.strip()
-        for e in CallEntry.query.filter(CallEntry.remarks != "")
-        if e.remarks.strip()
+def remark_chips(ta, limit=6):
+    """The TA's most-used remarks as tappable chips, defaults always included.
+
+    Scoped to the TA's own teams — one TA's remarks never show up for another.
+    """
+    entries = (
+        CallEntry.query.join(Call, CallEntry.call_id == Call.id)
+        .join(Team, Call.team_id == Team.id)
+        .filter(Team.ta_id == ta.id, CallEntry.remarks != "")
     )
+    counts = Counter(e.remarks.strip() for e in entries if e.remarks.strip())
     for default in DEFAULT_REMARK_CHIPS:
         counts[default] += 0  # defaults always offered, even with no data yet
     chips = [text for text, _ in counts.most_common(limit)]

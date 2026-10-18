@@ -1,0 +1,19 @@
+[Unit]
+Description=SE-Tracker (gunicorn)
+After=network.target
+
+[Service]
+User=setracker
+Group=setracker
+WorkingDirectory=/srv/se-tracker
+EnvironmentFile=/etc/se-tracker.env
+# Create tables once before the workers start (avoids a first-boot race).
+ExecStartPre=/srv/se-tracker/.venv/bin/python -c "from app import create_app; create_app()"
+# 2 workers x 2 threads is plenty for a few dozen TAs on an e2-micro.
+ExecStart=/srv/se-tracker/.venv/bin/gunicorn --workers 2 --threads 2 --timeout 60 \
+    --bind 127.0.0.1:8000 --access-logfile - 'app:create_app()'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

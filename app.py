@@ -3,12 +3,15 @@
 Run with:  pip install -r requirements.txt && python app.py
 
 Each TA has an account (email + password); teams, calls, and exports are
-scoped to the signed-in TA.
+scoped to the signed-in TA. /demo is a seeded read-only TA view; /admin is a
+cross-TA overview behind Google Sign-In (see admin.py).
 """
 
 import io
 import os
 import secrets
+import time
+from collections import defaultdict, deque
 from datetime import date
 from pathlib import Path
 
@@ -26,11 +29,16 @@ from flask import (
     session,
     url_for,
 )
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import export
 import importer
 import metrics
+import overview
 import services
+from admin import init_admin
+from demo_seed import DEMO_EMAIL, ensure_demo_ta, is_demo
 from models import (
     SCORE_FIELDS,
     TA,
@@ -47,18 +55,40 @@ XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 TEAM_FORM_TEMPLATE = "team_form.html"
 MIN_PASSWORD_LENGTH = 6
 
+LOGIN_MAX_FAILURES = 10
+LOGIN_WINDOW_SECONDS = 600
+
 bp = Blueprint("main", __name__)
+csrf = CSRFProtect()
 
 
 # ---------- auth ----------
 
-AUTH_ENDPOINTS = {"main.login", "main.register"}
+AUTH_ENDPOINTS = {"main.login", "main.register", "main.demo"}
+DEMO_WRITABLE_ENDPOINTS = {"main.logout"}
+# Pages that are only forms — nothing to look at in a read-only demo.
+DEMO_HIDDEN_ENDPOINTS = {"main.settings", "main.import_page", "main.new_team_form",
+                         "main.edit_team_form"}
+_login_failures = defaultdict(deque)  # client ip -> failure timestamps
 
 
 @bp.before_request
 def load_signed_in_ta():
-    """Resolve the signed-in TA; everything except login/register requires one."""
+    """Resolve the signed-in TA; everything except login/register requires one.
+
+    The demo account is read-only: any write is refused here, server-side,
+    whatever the page shows.
+    """
     g.ta = db.session.get(TA, session["ta_id"]) if "ta_id" in session else None
+    g.demo = is_demo(g.ta)
+    if g.demo and request.method not in ("GET", "HEAD", "OPTIONS") \
+            and request.endpoint not in DEMO_WRITABLE_ENDPOINTS:
+        if request.path.startswith("/api/"):
+            return jsonify(ok=False, error="The demo is read-only."), 403
+        flash("The demo is read-only — sign in as a TA to make changes.", "error")
+        return redirect(request.referrer or url_for("main.dashboard"))
+    if g.demo and request.endpoint in DEMO_HIDDEN_ENDPOINTS:
+        return redirect(url_for("main.dashboard"))
     if g.ta or request.endpoint in AUTH_ENDPOINTS:
         return None
     if request.path.startswith("/api/"):
@@ -66,19 +96,35 @@ def load_signed_in_ta():
     return redirect(url_for("main.login"))
 
 
+def _login_throttled(ip):
+    """True once an address has too many recent failed sign-ins."""
+    attempts = _login_failures[ip]
+    cutoff = time.monotonic() - LOGIN_WINDOW_SECONDS
+    while attempts and attempts[0] < cutoff:
+        attempts.popleft()
+    return len(attempts) >= LOGIN_MAX_FAILURES
+
+
 def sign_in(ta):
     session.permanent = True
+    session.pop("demo", None)
     session["ta_id"] = ta.id
 
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        ip = request.remote_addr or "?"
+        if _login_throttled(ip):
+            flash("Too many failed sign-ins. Try again in a few minutes.", "error")
+            return render_template("login.html"), 429
         email = request.form.get("email", "").strip().lower()
         ta = TA.query.filter_by(email=email).first()
-        if ta and ta.check_password(request.form.get("password", "")):
+        if ta and not is_demo(ta) and ta.check_password(request.form.get("password", "")):
+            _login_failures.pop(ip, None)
             sign_in(ta)
             return redirect(url_for("main.home"))
+        _login_failures[ip].append(time.monotonic())
         flash("Invalid email or password.", "error")
     return render_template("login.html")
 
@@ -93,7 +139,7 @@ def validate_registration(form):
         error = "Name and email are required."
     elif len(password) < MIN_PASSWORD_LENGTH:
         error = f"Password needs at least {MIN_PASSWORD_LENGTH} characters."
-    elif TA.query.filter_by(email=email).first():
+    elif email == DEMO_EMAIL or TA.query.filter_by(email=email).first():
         error = "An account with that email already exists."
     return name, email, password, error
 
@@ -105,7 +151,7 @@ def register():
         if error:
             flash(error, "error")
         else:
-            first_account = TA.query.count() == 0
+            first_account = TA.query.filter(TA.email != DEMO_EMAIL).count() == 0
             ta = TA(name=name, email=email)
             ta.set_password(password)
             db.session.add(ta)
@@ -126,7 +172,18 @@ def register():
 @bp.post("/logout")
 def logout():
     session.pop("ta_id", None)
+    session.pop("demo", None)
     return redirect(url_for("main.login"))
+
+
+@bp.get("/demo")
+def demo():
+    """Sign the visitor into the seeded, read-only demo account."""
+    ta = ensure_demo_ta()
+    session.permanent = False
+    session["ta_id"] = ta.id
+    session["demo"] = True
+    return redirect(url_for("main.dashboard"))
 
 
 # ---------- helpers ----------
@@ -189,7 +246,7 @@ def validate_team_number(form, current_team=None):
     if not raw.isdigit():
         return None, "Team number must be a whole number."
     number = int(raw)
-    query = Team.query.filter(Team.team_number == number)
+    query = Team.query.filter(Team.ta_id == g.ta.id, Team.team_number == number)
     if current_team:
         query = query.filter(Team.id != current_team.id)
     if query.first():
@@ -253,7 +310,7 @@ def team_page(team_id):
             milestone = team.milestones[0] if team.milestones else ""
         context["milestone"] = milestone
         context["grid_rows"] = services.milestone_grid(team, milestone) if milestone else []
-        context["chips"] = services.remark_chips()
+        context["chips"] = services.remark_chips(g.ta)
     elif tab == "summary":
         context["summary"] = services.team_summary(team)
         context["legend"] = metrics.THRESHOLD_LEGEND
@@ -334,7 +391,7 @@ def call_form(call_id):
         call=call,
         team=call.team,
         member_entries=member_entries,
-        chips=services.remark_chips(),
+        chips=services.remark_chips(g.ta),
     )
 
 
@@ -473,6 +530,19 @@ def export_all():
     )
 
 
+# ---------- overview dashboard ----------
+
+
+@bp.get("/dashboard")
+def dashboard():
+    """The signed-in TA's overview — only their own teams and students."""
+    teams = services.teams_for(g.ta)
+    data = overview.build_overview(teams)
+    for row in data["teams"]:
+        row["url"] = url_for("main.team_page", team_id=row["id"])
+    return render_template("overview.html", data=data, scope="ta")
+
+
 # ---------- settings ----------
 
 
@@ -533,11 +603,17 @@ def create_app(database_uri=None):
     # Set HTTPS_ONLY=1 on hosts that serve HTTPS (see DEPLOY.md); left off
     # locally so plain-http `python app.py` sign-in keeps working.
     app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("HTTPS_ONLY"))
+    # Call forms stay open for a whole client call; don't expire their token.
+    app.config["WTF_CSRF_TIME_LIMIT"] = None
     db.init_app(app)
     with app.app_context():
         _upgrade_pre_accounts_db()
         db.create_all()
         app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or _stable_secret_key()
+    if os.environ.get("BEHIND_PROXY"):
+        # Caddy terminates TLS (deploy/gcp) — trust its X-Forwarded-* headers.
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    csrf.init_app(app)
 
     @app.context_processor
     def inject_sidebar():
@@ -548,9 +624,19 @@ def create_app(database_uri=None):
             ),
             "cohort": cohort_label(),
             "score_fields": SCORE_FIELDS,
+            "read_only": bool(getattr(g, "demo", False)),
         }
 
+    @app.template_filter("pct")
+    def pct(value):
+        return "—" if value is None else f"{value}%"
+
+    @app.template_filter("short_date")
+    def short_date(iso):
+        return date.fromisoformat(iso).strftime("%d %b") if iso else "—"
+
     app.register_blueprint(bp)
+    init_admin(app)
     return app
 
 

@@ -1,0 +1,228 @@
+{# Shared overview body. Needs: data (overview.build_overview), scope ('ta' | 'admin'). #}
+{% set k = data.kpis %}
+{% set labels = data.status_labels %}
+{% if not data.teams %}
+<div class="empty-state hero-empty">
+  <span class="empty-badge"><svg class="ico"><use href="#i-chart"/></svg></span>
+  <h1>Nothing to chart yet</h1>
+  <p>{{ 'No TA has added teams yet.' if scope == 'admin' else 'Add a team and log a call — the overview fills itself in.' }}</p>
+  {% if scope != 'admin' and not read_only %}
+  <a class="btn btn-primary" href="{{ url_for('main.new_team_form') }}"><svg class="ico"><use href="#i-plus"/></svg>New team</a>
+  {% endif %}
+</div>
+{% else %}
+
+<section class="kpi-grid reveal-group">
+  <div class="kpi">
+    <span class="kpi-label">Students</span>
+    <span class="kpi-value" data-count="{{ k.students }}">{{ k.students }}</span>
+    <span class="kpi-sub">{{ k.teams }} team{{ '' if k.teams == 1 else 's' }}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Calls logged</span>
+    <span class="kpi-value" data-count="{{ k.calls }}">{{ k.calls }}</span>
+    <span class="kpi-sub">{{ (k.calls / k.teams) | round(1) if k.teams else 0 }} per team</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Avg score</span>
+    <span class="kpi-value">{% if k.avg is not none %}<span data-count="{{ k.avg }}" data-decimals="2">{{ k.avg }}</span><small>/{{ data.max_score }}</small>{% else %}—{% endif %}</span>
+    <span class="meter"><span class="meter-fill" style="--w: {{ ((k.avg or 0) / data.max_score * 100) | round }}%"></span></span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Attendance</span>
+    <span class="kpi-value">{% if k.attendance is not none %}<span data-count="{{ k.attendance }}">{{ k.attendance }}</span><small>%</small>{% else %}—{% endif %}</span>
+    <span class="meter"><span class="meter-fill" style="--w: {{ k.attendance or 0 }}%"></span></span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Spoke when present</span>
+    <span class="kpi-value">{% if k.speaking is not none %}<span data-count="{{ k.speaking }}">{{ k.speaking }}</span><small>%</small>{% else %}—{% endif %}</span>
+    <span class="meter"><span class="meter-fill" style="--w: {{ k.speaking or 0 }}%"></span></span>
+  </div>
+  <div class="kpi{% if k.flagged %} kpi-alert{% endif %}">
+    <span class="kpi-label"><svg class="ico"><use href="#i-alert"/></svg>Flagged</span>
+    <span class="kpi-value" data-count="{{ k.flagged }}">{{ k.flagged }}</span>
+    <span class="kpi-sub">{{ ((k.flagged / k.students * 100) | round | int) if k.students else 0 }}% of students</span>
+  </div>
+</section>
+
+<section class="card status-strip reveal">
+  <div class="card-head-row">
+    <h2 class="card-title">Student status</h2>
+  </div>
+  <div class="stack-bar" role="img" aria-label="{% for key, n in data.status_counts.items() %}{{ labels[key] }} {{ n }}{{ ', ' if not loop.last }}{% endfor %}">
+    {% for key, n in data.status_counts.items() if n %}
+    <span class="stack-seg status-bg-{{ key }}" style="--w: {{ (n / k.students * 100) if k.students else 0 }}%" title="{{ labels[key] }}: {{ n }}"></span>
+    {% endfor %}
+  </div>
+  <div class="legend-row">
+    {% for key, n in data.status_counts.items() %}
+    <span class="legend-item"><span class="swatch status-bg-{{ key }}"></span>{{ labels[key] }} <strong>{{ n }}</strong></span>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="viz-grid">
+  {% if data.teams | length > 1 %}
+  <section class="card span-7 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">Team ranking</h2>
+      <span class="card-hint">avg score / call · out of {{ data.max_score }}</span>
+    </div>
+    <div class="chart-box" style="height: {{ [data.teams | length * 34 + 40, 180] | max }}px"><canvas id="c-rank" aria-label="Average score per team"></canvas></div>
+  </section>
+
+  <section class="card span-5 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">Status by team</h2>
+      <span class="card-hint">students</span>
+    </div>
+    <div class="chart-box" style="height: {{ [data.teams | length * 34 + 70, 210] | max }}px"><canvas id="c-status" aria-label="Student status per team"></canvas></div>
+  </section>
+  {% endif %}
+
+  <section class="card span-7 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">Attendance vs score</h2>
+      <span class="card-hint">one dot per student</span>
+    </div>
+    <div class="chart-box chart-tall"><canvas id="c-scatter" aria-label="Attendance against average score, per student"></canvas></div>
+    <div class="legend-row">
+      {% for key in ['active', 'risk', 'low'] %}
+      <span class="legend-item"><span class="swatch swatch-dot status-bg-{{ key }}"></span>{{ labels[key] }}</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card span-5 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">By call</h2>
+      <span class="card-hint">call #1 → latest</span>
+    </div>
+    <p class="chart-caption">Attendance &amp; speaking %</p>
+    <div class="chart-box chart-short"><canvas id="c-trend" aria-label="Attendance and speaking by call number"></canvas></div>
+    <div class="legend-row">
+      <span class="legend-item"><span class="swatch swatch-line series-1"></span>Attendance</span>
+      <span class="legend-item"><span class="swatch swatch-line series-2"></span>Spoke</span>
+    </div>
+    <p class="chart-caption">Avg score</p>
+    <div class="chart-box chart-short"><canvas id="c-score" aria-label="Average score by call number"></canvas></div>
+  </section>
+
+  <section class="card span-12 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">Milestones</h2>
+      <span class="card-hint">share of team marked Y · code / tests / demo</span>
+    </div>
+    <div class="table-scroll">
+      <table class="heatmap">
+        <thead>
+          <tr><th>Team</th>{% for m in data.milestones %}<th>{{ m }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for t in data.teams %}
+          <tr>
+            <th scope="row"><a href="{{ t.url }}">{{ t.number }}</a>{% if scope != 'ta' %}<span class="muted"> · {{ t.ta }}</span>{% endif %}</th>
+            {% for m in data.milestones %}
+            {% set cell = t.milestones.get(m) %}
+            {% if cell %}
+            <td class="heat heat-{{ (cell.done / 20) | round(0, 'floor') | int }}"
+                title="{{ m }} — Code {{ cell.code }}% · Tests {{ cell.tests }}% · Demo {{ cell.demo }}%">
+              <span class="heat-val">{{ cell.done }}%</span>
+              <span class="heat-parts"><i style="--w: {{ cell.code }}%"></i><i style="--w: {{ cell.tests }}%"></i><i style="--w: {{ cell.demo }}%"></i></span>
+            </td>
+            {% elif m in t.milestones %}
+            <td class="heat heat-empty" title="{{ m }} — not graded yet">—</td>
+            {% else %}
+            <td class="heat heat-na"></td>
+            {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="legend-row heat-legend">
+      <span class="muted">0%</span>
+      {% for i in range(6) %}<span class="swatch heat-{{ i }}"></span>{% endfor %}
+      <span class="muted">100%</span>
+    </div>
+  </section>
+
+  {% if scope == 'admin' %}
+  {% include "_admin_extras.html" %}
+  {% endif %}
+
+  <section class="card span-12 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">Teams</h2>
+      <span class="card-hint">students by avg score</span>
+    </div>
+    <div class="team-cards">
+      {% for t in data.teams %}
+      {% set members = data.students | selectattr('team_id', 'equalto', t.id) | list %}
+      <article class="team-card">
+        <header class="team-card-head">
+          <a class="team-card-title" href="{{ t.url }}">
+            <span class="dot dot-{{ {'active': 'green', 'risk': 'yellow', 'low': 'red', 'none': 'gray'}[t.status] }}"></span>
+            Team {{ t.number }}
+          </a>
+          <span class="team-card-avg">{{ t.avg if t.avg is not none else '—' }}<small>/{{ data.max_score }}</small></span>
+          <span class="team-card-sub">{{ t.project or '—' }}{% if scope != 'ta' %} · {{ t.ta }}{% endif %}</span>
+          <span class="team-card-stats">
+            <span title="Attendance">{{ t.attendance | pct }} att.</span>
+            <span title="Calls logged">{{ t.calls }} calls</span>
+            {% if t.flagged %}<span class="flag-count" title="Flagged students"><svg class="ico"><use href="#i-alert"/></svg>{{ t.flagged }}</span>{% endif %}
+          </span>
+        </header>
+        <ul class="member-list">
+          {% for s in members %}
+          <li class="member-row">
+            <span class="member-name" title="{{ s.role }}">{{ s.name }}</span>
+            <span class="bar-track" title="Avg {{ s.avg_display }} / {{ data.max_score }}">
+              <span class="bar-fill status-bg-{{ s.status }}" style="--w: {{ ((s.avg or 0) / data.max_score * 100) | round }}%"></span>
+            </span>
+            <span class="member-avg">{{ s.avg_display }}</span>
+            <span class="member-att" title="Attendance">{{ s.attendance | pct }}</span>
+            <svg class="spark" data-series='{{ s.series | tojson }}' data-max="{{ data.max_score }}" viewBox="0 0 80 22" preserveAspectRatio="none" aria-hidden="true"></svg>
+            {% if s.reasons %}<span class="flag-dot" title="{{ s.reasons | join(' · ') }}"><svg class="ico"><use href="#i-alert"/></svg></span>{% else %}<span></span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if scope == 'ta' %}
+  {% set flagged = data.flagged %}
+  <section class="card span-12 reveal">
+    <div class="card-head-row">
+      <h2 class="card-title">Needs attention</h2>
+      <span class="card-hint">{{ flagged | length }} student{{ '' if flagged | length == 1 else 's' }}</span>
+    </div>
+    {% if flagged %}
+    <div class="table-scroll">
+      <table class="data-table compact">
+        <thead><tr><th>Student</th><th>Team</th><th>Avg</th><th>Attendance</th><th>Why</th></tr></thead>
+        <tbody>
+          {% for s in flagged %}
+          <tr data-href="{{ (data.teams | selectattr('id', 'equalto', s.team_id) | first).url }}?tab=summary">
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.team }}</td>
+            <td><span class="status-pill status-{{ s.status }}">{{ s.avg_display }}</span></td>
+            <td>{{ s.attendance | pct }}</td>
+            <td><span class="reason-chips">{% for r in s.reasons %}<span class="reason">{{ r }}</span>{% endfor %}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="all-clear">Nobody flagged.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+
+<script id="overview-data" type="application/json">{{ data | tojson }}</script>
+{% endif %}

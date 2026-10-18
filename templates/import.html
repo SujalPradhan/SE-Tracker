@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Import data — SE-Tracker{% endblock %}
 {% block content %}
-<h1 class="page-title">Import data</h1>
+<header class="page-head"><div class="page-head-main"><h1 class="page-title">Import data</h1></div></header>
 <p class="muted import-intro">
   Bring existing Excel data in as JSON — everything lands in your account.
   The import is all-or-nothing: if anything is invalid, nothing is saved and
@@ -75,6 +75,7 @@ Rules:
 - Output ONLY the JSON — no commentary, no markdown fences.</pre>
 </details>
 
+<section class="card">
 <label class="import-label">Converted JSON
   <textarea id="import-json" rows="16" spellcheck="false"
             placeholder='{"teams": [ … ]}'></textarea>
@@ -83,5 +84,6 @@ Rules:
   <span class="save-status" id="import-status" role="status"></span>
   <button type="button" class="btn btn-primary" id="run-import">Import</button>
 </div>
+</section>
 <div id="import-result" hidden></div>
 {% endblock %}

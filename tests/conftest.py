@@ -15,6 +15,7 @@ TEST_PASSWORD = "test-password"
 @pytest.fixture()
 def app():
     app = create_app("sqlite://")  # in-memory
+    app.config["WTF_CSRF_ENABLED"] = False
     with app.app_context():
         yield app
         db.session.remove()

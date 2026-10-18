@@ -2,18 +2,20 @@
 {% block title %}Create account — SE-Tracker{% endblock %}
 {% block card %}
 <h1>Create your TA account</h1>
+<p class="muted auth-sub">Takes ten seconds. Your teams stay private to you.</p>
 <form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Name
-    <input name="name" value="{{ request.form.get('name', '') }}" required autofocus>
+    <input name="name" value="{{ request.form.get('name', '') }}" required autofocus placeholder="Your name">
   </label>
   <label>Email
     <input name="email" type="email" value="{{ request.form.get('email', '') }}"
-           required autocomplete="username">
+           required autocomplete="username" placeholder="you@study.iitm.ac.in">
   </label>
   <label>Password <span class="muted">(6+ characters)</span>
-    <input name="password" type="password" required minlength="6" autocomplete="new-password">
+    <input name="password" type="password" required minlength="6" autocomplete="new-password" placeholder="••••••••">
   </label>
-  <button type="submit" class="btn btn-primary">Create account</button>
+  <button type="submit" class="btn btn-primary btn-block">Create account</button>
 </form>
-<p class="muted">Already have an account? <a href="{{ url_for('main.login') }}">Sign in</a></p>
+<p class="muted auth-switch">Already have an account? <a href="{{ url_for('main.login') }}">Sign in</a></p>
 {% endblock %}
