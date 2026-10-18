@@ -1,158 +1,135 @@
 # SE-Tracker
 
-A web app for Software Engineering course TAs to track their teams through
-client calls and milestones — replacing per-team Excel sheets with a workflow
-built around **zero re-typing**:
+SE-Tracker is a small web app for Software Engineering course TAs. Each TA
+used to keep one Excel sheet per team for client calls and milestones. This
+app replaces those sheets, and it's built so you never have to type the same
+thing twice.
 
-- **Roster entered once.** Members auto-populate every call sheet, milestone
-  grid, and export row. Editing a member updates everywhere.
-- **Tasks flow between calls.** "Tasks for next call" recorded in call *N*
-  appears as "Tasks Assigned (Prev Call)" in call *N+1* automatically.
-- **Evidence links remember themselves.** Each member's evidence field
-  prefills with their last non-empty link, falling back to the team repo URL.
-- **"New call" is one click** — call number, milestone, date, roster,
-  carried tasks, and evidence are all pre-filled; the TA only enters what's
-  new (Spoke, scores, progress, remarks).
-- **Metrics are always derived, never stored** — averages, contribution
-  status, and risk flags are recomputed live, so a `#DIV/0!` is impossible.
+Live (SEP2026): https://34-100-168-34.sslip.io. To look around without an
+account, open [`/demo`](https://34-100-168-34.sslip.io/demo).
 
-## Setup
+## Why it exists
+
+The spreadsheets worked, but a lot of the work was re-typing: the roster on
+every tab, last week's tasks into this week's row, the same repo link over and
+over. SE-Tracker fills those in for you:
+
+- You enter the roster once. It shows up on every call sheet, milestone grid
+  and export, and if you fix a name it's fixed everywhere.
+- What you write under "Tasks for next call" shows up as "Tasks assigned" on
+  the next call.
+- Each student's evidence link starts as their last one, or the team repo if
+  they haven't given one yet.
+- A new call is one click. The call number, milestone, date and roster are
+  already filled in, so during the call you only record attendance, scores and
+  notes.
+- Averages, statuses and risk flags are calculated when you open the page.
+  They're never stored, so they can't go stale or show `#DIV/0!`.
+
+## What's in it
+
+**For TAs**
+
+- **Teams, calls and milestones.** One card per student during a call, with
+  Y/N toggles and +/- buttons for scores. Drafts autosave in your browser,
+  and a failed save keeps everything you typed.
+- **Summary tab.** Shows attendance, how often each student was silent,
+  evidence, average score and risk flags. The rules behind each flag are
+  listed on the page, so you can explain a flag to the student.
+- **Overview (`/dashboard`).** Your own students at a glance:
+  - team ranking and status mix;
+  - attendance vs. score, one dot per student;
+  - trends across calls;
+  - a milestone heatmap;
+  - a short "needs attention" list.
+- **Excel export** in the original sheet format, per team or all at once.
+- **Import** of old workbooks via JSON. See
+  [docs/import-format.md](docs/import-format.md).
+
+**For course staff**
+
+- **`/admin`** is the same overview across every TA, plus:
+  - a TA filter and a TA comparison;
+  - calls per week;
+  - a searchable table of every student.
+
+  It's read-only. You sign in with Google, and only emails on the allowlist
+  in `admin.py` can get in.
+- **`/demo`** is a read-only TA account with four sample teams. It's handy for
+  showing the tool to someone. You can't change anything in it, and it never
+  appears in `/admin`.
+
+## Running it locally
+
+You need Python 3.11+.
 
 ```sh
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
 
-Then open <http://127.0.0.1:5050>. The SQLite database (`se_tracker.db`) is
-created automatically next to `app.py`.
+Then open http://127.0.0.1:5050 and create an account. The SQLite database
+(`se_tracker.db`) is created next to `app.py` on first run.
 
-Run the tests:
+To try `/admin` without setting up Google, start the app with an
+allowlisted email. This only works in debug mode:
+
+```sh
+ADMIN_DEV_EMAIL=23f2004759@ds.study.iitm.ac.in python app.py
+```
+
+Tests:
 
 ```sh
 python -m pytest
 ```
 
-## TA accounts
+## A typical week
 
-Each TA registers with a name, email, and password (hashed with Werkzeug —
-no extra auth libraries). Teams, calls, milestone grids, summaries, and
-exports are all scoped to the signed-in TA; another TA's teams simply don't
-exist for you (they 404). Sign-in survives server restarts.
+1. **Add your teams.** In the sidebar, use **New team** and enter the team
+   number, project name, repo URL and roster.
+2. **During a client call,** go to the team's **Calls** tab and click
+   **New call**. Mark who was present and who spoke, score each person, jot
+   down progress and next tasks, then click **Save call** (or ⌘S).
+3. **After a milestone,** fill in the **Milestones** tab: report section,
+   Code / Tests / Demo, and remarks.
+4. **Before you raise a concern,** check the **Summary** tab or the
+   **Overview**.
 
-- **First run**: open the app → *Create an account*. If the database predates
-  accounts, it's upgraded in place and **the first account registered adopts
-  all existing teams** — register yourself before handing out the URL.
-- Change your name or password anytime in **Settings**.
+A few smaller things:
 
-There is no password reset — this is a hand-out-to-a-few-people tool; whoever
-runs the server can reset a password from a Flask shell if someone forgets.
-
-## Everyday use
-
-1. **Create a team** (sidebar → *+ New team*): team number, optional project
-   name, default repo URL, and the roster. That's the last time you type any
-   of it.
-2. **During a call**: open the team → *Calls* tab → **+ New call**. One card
-   per member: big Y/N toggles for Present/Spoke, score steppers
-   (0–3 / 0–2 / 0–2 in 0.5 steps, blank allowed) with a live total, and the
-   carried-forward tasks already filled in. The footer shows
-   "3 of 5 members logged" as you go. **Save call** saves everyone at once.
-   Drafts autosave to your browser as you type — a failed save keeps your
-   entries and offers a retry.
-3. **After a milestone**: *Milestones* tab → pick the milestone → fill the
-   grid (report section, Code/Tests/Demo, remarks; evidence is prefilled).
-4. **Before escalating**: *Summary* tab shows per-member attendance, silence,
-   evidence counts, average score, contribution status, and risk flags — with
-   the threshold rules spelled out in the legend so you can defend a flag.
-
-## Overview dashboard
-
-Sidebar → **Overview** (`/dashboard`) shows the signed-in TA's own students:
-KPI tiles, team ranking, status per team, attendance vs. score (one dot per
-student), attendance/speaking and score trends by call, a milestone heatmap,
-per-team drill-down with sparklines, and a "Needs attention" list. Everything
-is computed live in `overview.py` from the same `metrics.py` rules as the
-Summary tab.
-
-## Demo — `/demo`
-
-A read-only TA view with seeded sample data (four teams), for showing the tool
-to someone without an account. It's seeded on first visit (`demo_seed.py`).
-Writes are refused on the server, not just hidden in the UI, and the demo
-account never shows up in `/admin`.
-
-## Admin overview — `/admin`
-
-A read-only, cross-TA version of the overview for course staff. It adds a TA
-filter, a TA comparison, calls per week, risk reasons, a searchable and
-sortable table of every student, per-team detail pages, and an export of all
-teams (one folder per TA). Sign-in is **Google only**: the verified email must be on the allowlist
-(`DEFAULT_ADMIN_EMAILS` in `admin.py`, or the `ADMIN_EMAILS` env var). The
-list is re-checked on every request. Admin sessions are separate from TA
-sessions.
-
-Local testing without Google: run with `ADMIN_DEV_EMAIL=<allowlisted email>
-python app.py`. It is honoured only in debug mode.
-
-## Deployment
-
-See [DEPLOY.md](DEPLOY.md): a Google Cloud e2-micro VM in Mumbai running
-gunicorn behind Caddy (automatic HTTPS), with nightly SQLite backups to Cloud
-Storage. Ready-made files are in `deploy/gcp/`. `create_app` honors
-`DATABASE_URL`, `HTTPS_ONLY=1`, `SECRET_KEY`, `BEHIND_PROXY=1`, and the Google
-OAuth variables.
-
-## Importing existing Excel data
-
-Sidebar → **Import data**. Convert your legacy per-team workbooks to JSON
-(the page includes a ready-made prompt you can paste into Claude along with
-your .xlsx files — full spec in [docs/IMPORT_FORMAT.md](docs/IMPORT_FORMAT.md)),
-paste the JSON, and hit Import. Everything is created under your account.
-
-- All-or-nothing: invalid payloads import **nothing** and list every problem
-  with its location.
-- Team numbers that already exist in your account are rejected — delete the old team first
-  (Edit team → **Delete team**) or renumber in the JSON.
-- "Tasks for next call" is reconstructed from the following call's
-  "Tasks Assigned (Prev Call)", so carry-forward keeps working on imported
-  history.
-
-## Changing the cohort label
-
-Sidebar → **Settings** → edit *Cohort label* (default `SEP2026`). It's used
-in export filenames, e.g. `SEP2026-Team-096.xlsx`. Stored in the `setting`
-table, so it applies app-wide.
-
-## Adding M6 to a team
-
-Team page → *Milestones* tab → **+ Add M6**. Milestones are a per-team list
-(default M1–M5, capped at M6), so one team gaining M6 doesn't affect others.
-
-## Excel export
-
-- Per team: the **Export .xlsx** button on the team page produces
-  `{cohort}-Team-{NNN}.xlsx` with the exact legacy sheets:
-  `Team_Info`, `Client_Calls`, `Milestone_Submissions`, `Call_Summary`
-  (header kept literally as `Avg Score (12 Calls)`), and `Risk_Flags`.
-- All teams: sidebar → **Export all teams** downloads a zip of per-team files.
-
-Header rows are locked byte-for-byte by `tests/test_export.py` — if a header
-ever drifts from the legacy format, the test suite fails.
+- The cohort label (default `SEP2026`) is in **Settings**. It's used in
+  export filenames like `SEP2026-Team-096.xlsx`.
+- Teams start with milestones M1–M5. You can add M6 per team from the
+  Milestones tab.
+- There's no "forgot password" flow. Whoever runs the server can reset a
+  password from a Flask shell.
 
 ## Project layout
 
-| File | What it does |
-| --- | --- |
-| `app.py` | Flask app + TA routes, `/demo` (`python app.py` to run) |
-| `admin.py` | `/admin` blueprint: Google Sign-In, allowlist, cross-TA overview |
-| `overview.py` | Dashboard numbers for any set of teams (TA, demo, admin) |
-| `demo_seed.py` | Seeded read-only demo account |
-| `models.py` | SQLAlchemy models (Team, Member, Call, CallEntry, MilestoneSubmission, Setting) |
-| `services.py` | Carry-forward logic, milestone grid prefill, remark chips, sidebar roll-ups |
-| `metrics.py` | Pure computed metrics (avg score, statuses, risk rules) — fully unit-tested |
-| `export.py` | Legacy-format Excel export via openpyxl |
-| `static/` | `app.css` (design tokens, light/dark), `app.js` (forms), `motion.js` (animation), `overview.js` (charts) |
-| `deploy/gcp/` | VM setup script, systemd unit, Caddyfile, backup script |
-| `tests/` | Metrics, carry-forward, export, auth/scoping, overview, demo, admin tests |
+```
+app.py            Flask app, TA routes, /demo — run this
+admin.py          /admin: Google sign-in, allowlist, cross-TA views
+overview.py       numbers behind the dashboards (TA, demo, admin)
+metrics.py        averages, statuses and risk rules (pure, unit-tested)
+services.py       carry-forward, milestone grids, sidebar summaries
+models.py         database models
+export.py         Excel export in the legacy format
+importer.py       JSON import of old workbooks
+demo_seed.py      sample data for /demo
 
-See `NEXT_SPRINT.md` for what's deliberately out of scope in v1.
+templates/        Jinja pages
+static/           app.css, app.js (forms), motion.js (animation), overview.js (charts)
+deploy/gcp/       VM setup script, systemd unit, Caddyfile, backup script
+docs/             deployment, import format, roadmap
+tests/            pytest suite
+```
+
+## More docs
+
+- [docs/deployment.md](docs/deployment.md): how it runs on Google Cloud, and
+  how to redeploy or restore a backup.
+- [docs/import-format.md](docs/import-format.md): the JSON format for
+  importing old Excel data.
+- [docs/roadmap.md](docs/roadmap.md): what's not built yet, and why.

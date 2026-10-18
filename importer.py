@@ -1,6 +1,6 @@
 """Import legacy per-team data from a JSON payload into a TA's account.
 
-The payload mirrors the legacy Excel workbook (see docs/IMPORT_FORMAT.md):
+The payload mirrors the legacy Excel workbook (see docs/import-format.md):
 teams with members, calls with per-member entries keyed by member name, and
 milestone submissions. Import is all-or-nothing — if anything in the payload
 is invalid, nothing is written and every problem is reported with its

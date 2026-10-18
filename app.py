@@ -600,7 +600,7 @@ def create_app(database_uri=None):
         or "sqlite:///" + str(Path(app.root_path) / "se_tracker.db")
     )
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    # Set HTTPS_ONLY=1 on hosts that serve HTTPS (see DEPLOY.md); left off
+    # Set HTTPS_ONLY=1 on hosts that serve HTTPS (see docs/deployment.md); left off
     # locally so plain-http `python app.py` sign-in keeps working.
     app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("HTTPS_ONLY"))
     # Call forms stay open for a whole client call; don't expire their token.
