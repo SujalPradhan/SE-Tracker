@@ -47,6 +47,15 @@ echo '{"rule":[{"action":{"type":"Delete"},"condition":{"age":30}}]}' > lifecycl
 gcloud storage buckets update gs://BUCKET_NAME --lifecycle-file=lifecycle.json
 ```
 
+Let the VM's service account write to the bucket. It's the default compute
+account, `PROJECT_NUMBER-compute@developer.gserviceaccount.com`:
+
+```sh
+gcloud storage buckets add-iam-policy-binding gs://BUCKET_NAME \
+  --member=serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --role=roles/storage.objectAdmin
+```
+
 ## 3. Google Sign-In for /admin
 
 1. Console → **Google Auth Platform** → *Branding*: app name "SE-Tracker",
