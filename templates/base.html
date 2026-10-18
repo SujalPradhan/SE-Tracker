@@ -55,6 +55,7 @@
     {% endif %}
 
     <div class="sidebar-foot">
+      <div class="sidebar-theme"><span>Theme</span>{% include "_theme_switch.html" %}</div>
       {% if not read_only %}
       <a class="nav-item" href="{{ url_for('main.import_page') }}"><svg class="ico"><use href="#i-upload"/></svg>Import data</a>
       {% endif %}
@@ -82,8 +83,8 @@
     {% if read_only %}
     <div class="demo-banner" role="note">
       <span class="demo-pill"><svg class="ico"><use href="#i-eye"/></svg>Demo</span>
-      <span>Sample data · read-only</span>
-      <a href="{{ url_for('main.login') }}" class="demo-cta">Sign in as a TA</a>
+      <span>Made-up teams to click around in. Nothing here can be changed.</span>
+      <a href="{{ url_for('main.login') }}" class="demo-cta">Sign in for real</a>
     </div>
     {% endif %}
     <div class="toasts" aria-live="polite">

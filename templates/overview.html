@@ -3,7 +3,7 @@
 {% block content %}
 <header class="page-head">
   <div class="page-head-main">
-    <p class="eyebrow">{{ cohort }}</p>
+    <p class="eyebrow">{{ cohort }} · {{ 'demo' if read_only else g.ta.name }}</p>
     <h1 class="page-title">Overview</h1>
   </div>
   {% if data.teams %}

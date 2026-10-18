@@ -1,9 +1,10 @@
 {% extends "auth_base.html" %}
-{% block title %}Not authorised — SE-Tracker{% endblock %}
+{% block title %}Not on the list — SE-Tracker{% endblock %}
 {% block card %}
-<span class="empty-badge empty-badge-danger"><svg class="ico"><use href="#i-alert"/></svg></span>
-<h1>Not authorised</h1>
-<p class="muted auth-sub">{% if email %}<code>{{ email }}</code> isn't on the admin list.{% else %}That Google account couldn't be verified.{% endif %}</p>
-<a class="btn btn-block" href="{{ url_for('admin.login_google') }}">Try another account</a>
-<p class="muted auth-switch"><a href="{{ url_for('main.login') }}">← TA sign-in</a></p>
+<h1>You're not on the staff list</h1>
+<p class="muted auth-sub">{% if email %}<code>{{ email }}</code> can't open the admin view. If that's a mistake, ask whoever runs SE-Tracker to add you.{% else %}Google couldn't confirm that account's email.{% endif %}</p>
+<a class="btn btn-block" href="{{ url_for('admin.login_google') }}">Try a different account</a>
+{% endblock %}
+{% block foot %}
+<p class="auth-foot"><a href="{{ url_for('main.login') }}">← Back to TA sign-in</a></p>
 {% endblock %}

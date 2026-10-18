@@ -94,7 +94,7 @@
         if (line.label) {
           ctx.setLineDash([]);
           ctx.fillStyle = line.color;
-          ctx.font = "500 10px Inter, system-ui, sans-serif";
+          ctx.font = "500 10px 'IBM Plex Sans', system-ui, sans-serif";
           if (line.axis === "x") {
             ctx.textAlign = "center";
             ctx.fillText(line.label, p, a.top - 2 > 8 ? a.top - 2 : a.top + 10);
@@ -385,7 +385,7 @@
     charts.forEach((c) => c.destroy());
     charts = [];
     const t = tokens();
-    Chart.defaults.font.family = "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif";
+    Chart.defaults.font.family = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif";
     Chart.defaults.color = t.muted;
     rankChart(t);
     statusChart(t);
@@ -492,8 +492,7 @@
     sparklines();
     studentTable();
     render();
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    if (mq.addEventListener) mq.addEventListener("change", render);
+    document.addEventListener("themechange", render);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

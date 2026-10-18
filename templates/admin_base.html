@@ -11,6 +11,7 @@
   <span class="admin-tag"><svg class="ico"><use href="#i-shield"/></svg>Admin</span>
   <span class="cohort-badge">{{ cohort }}</span>
   <span class="admin-bar-spacer"></span>
+  {% include "_theme_switch.html" %}
   {% if g.admin_email %}
   <form method="post" action="{{ url_for('admin.logout') }}" class="user-chip">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -24,7 +24,7 @@ def test_demo_pages_render(app, client):
     demo = TA.query.filter_by(email=DEMO_EMAIL).one()
     team = Team.query.filter_by(ta_id=demo.id).first()
     body = client.get("/dashboard").get_data(as_text=True)
-    assert "Sample data" in body and "Team ranking" in body
+    assert "Nothing here can be changed" in body and "Team ranking" in body
     for tab in ("calls", "milestones", "summary"):
         assert client.get(f"/teams/{team.id}?tab={tab}").status_code == 200
     page = client.get(f"/calls/{team.calls[0].id}").get_data(as_text=True)

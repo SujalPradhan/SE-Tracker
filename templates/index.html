@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="empty-state hero-empty">
-  <span class="empty-badge"><svg class="ico"><use href="#i-users"/></svg></span>
-  <h1>Welcome to SE-Tracker</h1>
-  <p>Add your first team to start logging calls. Enter the roster once —
-     every call sheet, milestone grid, and export fills itself in from there.</p>
+  <h1>No teams yet</h1>
+  <p>Add a team and its roster. You only type the names once; every call sheet,
+     milestone grid and export picks them up from there.</p>
   {% if not read_only %}
   <a class="btn btn-primary btn-large" href="{{ url_for('main.new_team_form') }}"><svg class="ico"><use href="#i-plus"/></svg>Add your first team</a>
   {% endif %}

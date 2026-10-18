@@ -6,21 +6,10 @@
 </head>
 <body class="auth-page">
 {% include "_icons.html" %}
-  <div class="auth-backdrop" aria-hidden="true">
-    <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
-    <div class="auth-grid"></div>
-  </div>
+  <div class="auth-corner">{% include "_theme_switch.html" %}</div>
   <main class="auth-shell">
-    <section class="auth-pitch">
-      <a class="brand brand-lg" href="{{ url_for('main.login') }}"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>SE-Tracker</a>
-      <h2 class="auth-tagline">Client calls, milestones and risk — <span class="grad-text">one place, zero re-typing.</span></h2>
-      <ul class="auth-points">
-        <li><svg class="ico"><use href="#i-phone"/></svg>One-click prefilled call sheets</li>
-        <li><svg class="ico"><use href="#i-chart"/></svg>Live scores, attendance &amp; risk flags</li>
-        <li><svg class="ico"><use href="#i-download"/></svg>Legacy-format Excel export</li>
-      </ul>
-      <span class="cohort-badge">{{ cohort }}</span>
-    </section>
+    <a class="brand brand-lg" href="{{ url_for('main.login') }}"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span>SE-Tracker</a>
+    <p class="auth-lede">Client calls, scores and milestones for SE course TAs · {{ cohort }}</p>
     <section class="auth-card">
       <div class="toasts" aria-live="polite">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -31,6 +20,7 @@
       </div>
       {% block card %}{% endblock %}
     </section>
+    {% block foot %}{% endblock %}
   </main>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 <script src="{{ url_for('static', filename='motion.js') }}"></script>

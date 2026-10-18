@@ -1,9 +1,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<script>
+  /* Theme: "light", "dark" or "system" (default), remembered per browser.
+     Runs before the stylesheet so the page never flashes the wrong colours. */
+  (function () {
+    var media = window.matchMedia("(prefers-color-scheme: dark)");
+    function choice() {
+      try { return localStorage.getItem("se-theme") || "system"; } catch (e) { return "system"; }
+    }
+    window.applyTheme = function () {
+      var c = choice();
+      var dark = c === "dark" || (c === "system" && media.matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+      document.documentElement.dataset.themeChoice = c;
+      document.dispatchEvent(new Event("themechange"));
+    };
+    window.applyTheme();
+    if (media.addEventListener) media.addEventListener("change", function () {
+      if (choice() === "system") window.applyTheme();
+    });
+  })();
+</script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b5bd6'/%3E%3Cpath d='M9 23V13M15 23V9M21 23v-7' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f1f1d'/%3E%3Cpath d='M9 23V13M15 23V9M21 23v-7' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">

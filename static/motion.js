@@ -103,6 +103,28 @@
     window.addEventListener("resize", () => place(active.offsetLeft, active.offsetWidth));
   }
 
+  /* ---------- light / dark / system switch ---------- */
+
+  function initThemeSwitch() {
+    const buttons = $$("[data-theme-choice]");
+    const sync = () => {
+      const current = document.documentElement.dataset.themeChoice || "system";
+      buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeChoice === current)));
+    };
+    buttons.forEach((b) =>
+      b.addEventListener("click", () => {
+        try {
+          localStorage.setItem("se-theme", b.dataset.themeChoice);
+        } catch (e) {
+          /* storage blocked — the choice just won't stick */
+        }
+        if (window.applyTheme) window.applyTheme();
+        sync();
+      })
+    );
+    sync();
+  }
+
   /* ---------- Y/N/blank selects tint by value ---------- */
 
   function initYnd() {
@@ -130,6 +152,7 @@
   function init() {
     document.documentElement.classList.add("js");
     initDrawer();
+    initThemeSwitch();
     initReveals();
     initTabs();
     initYnd();

@@ -100,4 +100,4 @@ def test_dev_bypass_only_in_debug(app, client):
 
 def test_login_page_without_google_config(app, client):
     body = client.get("/admin/login").get_data(as_text=True)
-    assert "isn't configured" in body
+    assert "isn't set up" in body

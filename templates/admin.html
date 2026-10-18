@@ -3,7 +3,7 @@
 {% block content %}
 <header class="page-head">
   <div class="page-head-main">
-    <p class="eyebrow">All TAs · {{ cohort }}</p>
+    <p class="eyebrow">{{ cohort }} · {{ 'one TA' if ta_filter else 'every TA' }}</p>
     <h1 class="page-title">{{ ta_filter.name if ta_filter else 'Course overview' }}</h1>
   </div>
   {% if data.teams %}

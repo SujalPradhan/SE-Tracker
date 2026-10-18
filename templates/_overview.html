@@ -3,9 +3,8 @@
 {% set labels = data.status_labels %}
 {% if not data.teams %}
 <div class="empty-state hero-empty">
-  <span class="empty-badge"><svg class="ico"><use href="#i-chart"/></svg></span>
-  <h1>Nothing to chart yet</h1>
-  <p>{{ 'No TA has added teams yet.' if scope == 'admin' else 'Add a team and log a call — the overview fills itself in.' }}</p>
+  <h1>Nothing here yet</h1>
+  <p>{{ 'None of the TAs have added teams yet.' if scope == 'admin' else 'Once you add a team and log a call, this page fills in on its own.' }}</p>
   {% if scope != 'admin' and not read_only %}
   <a class="btn btn-primary" href="{{ url_for('main.new_team_form') }}"><svg class="ico"><use href="#i-plus"/></svg>New team</a>
   {% endif %}
@@ -66,7 +65,7 @@
   <section class="card span-7 reveal">
     <div class="card-head-row">
       <h2 class="card-title">Team ranking</h2>
-      <span class="card-hint">avg score / call · out of {{ data.max_score }}</span>
+      <span class="card-hint">average per call, out of {{ data.max_score }}</span>
     </div>
     <div class="chart-box" style="height: {{ [data.teams | length * 34 + 40, 180] | max }}px"><canvas id="c-rank" aria-label="Average score per team"></canvas></div>
   </section>
@@ -96,22 +95,22 @@
   <section class="card span-5 reveal">
     <div class="card-head-row">
       <h2 class="card-title">By call</h2>
-      <span class="card-hint">call #1 → latest</span>
+      <span class="card-hint">first call to latest</span>
     </div>
-    <p class="chart-caption">Attendance &amp; speaking %</p>
+    <p class="chart-caption">Attendance and speaking, %</p>
     <div class="chart-box chart-short"><canvas id="c-trend" aria-label="Attendance and speaking by call number"></canvas></div>
     <div class="legend-row">
       <span class="legend-item"><span class="swatch swatch-line series-1"></span>Attendance</span>
       <span class="legend-item"><span class="swatch swatch-line series-2"></span>Spoke</span>
     </div>
-    <p class="chart-caption">Avg score</p>
+    <p class="chart-caption">Average score</p>
     <div class="chart-box chart-short"><canvas id="c-score" aria-label="Average score by call number"></canvas></div>
   </section>
 
   <section class="card span-12 reveal">
     <div class="card-head-row">
       <h2 class="card-title">Milestones</h2>
-      <span class="card-hint">share of team marked Y · code / tests / demo</span>
+      <span class="card-hint">% of the team marked Y for code, tests and demo</span>
     </div>
     <div class="table-scroll">
       <table class="heatmap">
@@ -155,7 +154,7 @@
   <section class="card span-12 reveal">
     <div class="card-head-row">
       <h2 class="card-title">Teams</h2>
-      <span class="card-hint">students by avg score</span>
+      <span class="card-hint">best average first</span>
     </div>
     <div class="team-cards">
       {% for t in data.teams %}
@@ -218,7 +217,7 @@
       </table>
     </div>
     {% else %}
-    <p class="all-clear">Nobody flagged.</p>
+    <p class="all-clear">No one is flagged right now.</p>
     {% endif %}
   </section>
   {% endif %}

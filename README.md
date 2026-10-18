@@ -45,6 +45,8 @@ over. SE-Tracker fills those in for you:
 - **Excel export** in the original sheet format, per team or all at once.
 - **Import** of old workbooks via JSON. See
   [docs/import-format.md](docs/import-format.md).
+- **Light or dark.** Pick it at the bottom of the sidebar, or let it follow
+  your system.
 
 **For course staff**
 
