@@ -43,6 +43,8 @@ DEFAULT_ADMIN_EMAILS = (
     "22f3002293@ds.study.iitm.ac.in",
     "23f2005347@ds.study.iitm.ac.in",
     "23f2004759@ds.study.iitm.ac.in",
+    "kubra@study.iitm.ac.in",
+    "23f2000887@ds.study.iitm.ac.in",
 )
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 PUBLIC_ENDPOINTS = {"admin.login", "admin.login_google", "admin.callback", "admin.logout"}
