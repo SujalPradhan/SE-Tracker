@@ -54,7 +54,7 @@ def test_bad_password_rejected(app, client):
     ta = make_ta()
     resp = client.post("/login", data={"email": ta.email, "password": "wrong"})
     assert resp.status_code == 200
-    assert "Invalid email or password" in resp.get_data(as_text=True)
+    assert "don&#39;t match an account" in resp.get_data(as_text=True)
 
 
 def test_register_rejects_duplicate_email_and_short_password(app, client):

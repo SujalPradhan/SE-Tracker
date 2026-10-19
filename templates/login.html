@@ -4,11 +4,14 @@
 <h1>Sign in</h1>
 <form method="post" class="auth-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
   <label>Email
-    <input name="email" type="email" required autofocus autocomplete="username">
+    <input name="email" type="email" required autocomplete="username" maxlength="254"
+           value="{{ email or '' }}" {% if not email %}autofocus{% endif %}>
   </label>
   <label>Password
-    <input name="password" type="password" required autocomplete="current-password">
+    <input name="password" type="password" required autocomplete="current-password" maxlength="256"
+           {% if email %}autofocus{% endif %}>
   </label>
   <button type="submit" class="btn btn-primary btn-block">Sign in</button>
 </form>

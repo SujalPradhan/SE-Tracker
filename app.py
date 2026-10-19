@@ -9,11 +9,13 @@ cross-TA overview behind Google Sign-In (see admin.py).
 
 import io
 import os
+import re
 import secrets
 import time
 from collections import defaultdict, deque
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from flask import (
     Blueprint,
@@ -29,8 +31,10 @@ from flask import (
     session,
     url_for,
 )
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect
+from sqlalchemy.exc import IntegrityError
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import export
 import importer
@@ -54,6 +58,12 @@ from models import (
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 TEAM_FORM_TEMPLATE = "team_form.html"
 MIN_PASSWORD_LENGTH = 6
+MAX_PASSWORD_LENGTH = 256
+MAX_NAME_LENGTH = 120
+MAX_EMAIL_LENGTH = 254
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Checked when the email is unknown, so a wrong email takes as long as a wrong password.
+_DUMMY_HASH = generate_password_hash(secrets.token_hex(8))
 
 LOGIN_MAX_FAILURES = 10
 LOGIN_WINDOW_SECONDS = 600
@@ -64,12 +74,12 @@ csrf = CSRFProtect()
 
 # ---------- auth ----------
 
-AUTH_ENDPOINTS = {"main.login", "main.register", "main.demo"}
-DEMO_WRITABLE_ENDPOINTS = {"main.logout"}
+AUTH_ENDPOINTS = {"main.login", "main.register", "main.demo", "main.logout", "main.logout_page"}
+DEMO_WRITABLE_ENDPOINTS = {"main.logout", "main.login", "main.register"}
 # Pages that are only forms — nothing to look at in a read-only demo.
 DEMO_HIDDEN_ENDPOINTS = {"main.settings", "main.import_page", "main.new_team_form",
                          "main.edit_team_form"}
-_login_failures = defaultdict(deque)  # client ip -> failure timestamps
+_login_failures = defaultdict(deque)  # (client ip, email) -> failure timestamps
 
 
 @bp.before_request
@@ -93,15 +103,51 @@ def load_signed_in_ta():
         return None
     if request.path.startswith("/api/"):
         return jsonify(ok=False, error="Not signed in."), 401
+    # Remember where they were headed so sign-in can send them back there.
+    wanted = request.full_path.rstrip("?") if request.method == "GET" else None
+    if wanted and wanted != "/":
+        return redirect(url_for("main.login", next=wanted))
     return redirect(url_for("main.login"))
 
 
-def _login_throttled(ip):
-    """True once an address has too many recent failed sign-ins."""
-    attempts = _login_failures[ip]
+def safe_next(target):
+    """`target` if it's a path on this site, else None (no open redirects)."""
+    if not target or not isinstance(target, str):
+        return None
+    target = target.strip()
+    parts = urlsplit(target)
+    if parts.scheme or parts.netloc or not target.startswith("/") \
+            or target.startswith("//") or "\\" in target:
+        return None
+    return target
+
+
+def _same_site_referrer():
+    """The referring page's path, if it was a page on this site."""
+    ref = request.referrer
+    if not ref:
+        return None
+    parts = urlsplit(ref)
+    if parts.netloc and parts.netloc != request.host:
+        return None
+    return safe_next(parts.path + (f"?{parts.query}" if parts.query else ""))
+
+
+def _throttle_key(email):
+    return (request.remote_addr or "?", email)
+
+
+def _login_throttled(key):
+    """True once this address has too many recent failed sign-ins for this email."""
+    attempts = _login_failures.get(key)
+    if not attempts:
+        return False
     cutoff = time.monotonic() - LOGIN_WINDOW_SECONDS
     while attempts and attempts[0] < cutoff:
         attempts.popleft()
+    if not attempts:
+        del _login_failures[key]
+        return False
     return len(attempts) >= LOGIN_MAX_FAILURES
 
 
@@ -111,50 +157,74 @@ def sign_in(ta):
     session["ta_id"] = ta.id
 
 
+def _already_signed_in():
+    """A real TA (not the demo) is signed in."""
+    return g.ta is not None and not g.demo
+
+
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    next_url = safe_next(request.values.get("next"))
+    if _already_signed_in():
+        return redirect(next_url or url_for("main.home"))
+    email = ""
     if request.method == "POST":
-        ip = request.remote_addr or "?"
-        if _login_throttled(ip):
-            flash("Too many failed sign-ins. Try again in a few minutes.", "error")
-            return render_template("login.html"), 429
-        email = request.form.get("email", "").strip().lower()
-        ta = TA.query.filter_by(email=email).first()
-        if ta and not is_demo(ta) and ta.check_password(request.form.get("password", "")):
-            _login_failures.pop(ip, None)
+        email = request.form.get("email", "").strip().lower()[:MAX_EMAIL_LENGTH]
+        password = request.form.get("password", "")[:MAX_PASSWORD_LENGTH]
+        key = _throttle_key(email)
+        if _login_throttled(key):
+            flash("Too many failed attempts for this account. Wait a few minutes and try again.", "error")
+            return render_template("login.html", email=email, next_url=next_url), 429
+        ta = TA.query.filter_by(email=email).first() if email else None
+        if ta and not is_demo(ta):
+            valid = ta.check_password(password)
+        else:
+            check_password_hash(_DUMMY_HASH, password)  # keep timing the same
+            valid = False
+        if valid:
+            _login_failures.pop(key, None)
             sign_in(ta)
-            return redirect(url_for("main.home"))
-        _login_failures[ip].append(time.monotonic())
-        flash("Invalid email or password.", "error")
-    return render_template("login.html")
+            return redirect(next_url or url_for("main.home"))
+        _login_failures[key].append(time.monotonic())
+        flash("That email and password don't match an account.", "error")
+    return render_template("login.html", email=email, next_url=next_url)
 
 
 def validate_registration(form):
     """Returns (name, email, password, error) — error is None when valid."""
-    name = form.get("name", "").strip()
+    name = " ".join(form.get("name", "").split())
     email = form.get("email", "").strip().lower()
     password = form.get("password", "")
     error = None
     if not name or not email:
         error = "Name and email are required."
+    elif len(name) > MAX_NAME_LENGTH:
+        error = f"That name is too long (max {MAX_NAME_LENGTH} characters)."
+    elif len(email) > MAX_EMAIL_LENGTH or not EMAIL_RE.match(email):
+        error = "Enter a valid email address."
     elif len(password) < MIN_PASSWORD_LENGTH:
         error = f"Password needs at least {MIN_PASSWORD_LENGTH} characters."
+    elif len(password) > MAX_PASSWORD_LENGTH:
+        error = f"That password is too long (max {MAX_PASSWORD_LENGTH} characters)."
     elif email == DEMO_EMAIL or TA.query.filter_by(email=email).first():
-        error = "An account with that email already exists."
+        error = "An account with that email already exists. Try signing in instead."
     return name, email, password, error
 
 
 @bp.route("/register", methods=["GET", "POST"])
 def register():
+    if _already_signed_in():
+        return redirect(url_for("main.home"))
     if request.method == "POST":
         name, email, password, error = validate_registration(request.form)
         if error:
             flash(error, "error")
-        else:
-            first_account = TA.query.filter(TA.email != DEMO_EMAIL).count() == 0
-            ta = TA(name=name, email=email)
-            ta.set_password(password)
-            db.session.add(ta)
+            return render_template("register.html", name=name, email=email)
+        first_account = TA.query.filter(TA.email != DEMO_EMAIL).count() == 0
+        ta = TA(name=name, email=email)
+        ta.set_password(password)
+        db.session.add(ta)
+        try:
             db.session.flush()
             if first_account:
                 # Teams from a pre-accounts database belong to whoever
@@ -163,10 +233,21 @@ def register():
                 if claimed:
                     flash(f"Adopted {claimed} existing team(s) into your account.", "ok")
             db.session.commit()
-            sign_in(ta)
-            flash(f"Welcome, {ta.name}!", "ok")
-            return redirect(url_for("main.home"))
-    return render_template("register.html")
+        except IntegrityError:
+            # Someone registered the same email a moment ago.
+            db.session.rollback()
+            flash("An account with that email already exists. Try signing in instead.", "error")
+            return render_template("register.html", name=name, email=email)
+        sign_in(ta)
+        flash(f"Welcome, {ta.name}!", "ok")
+        return redirect(url_for("main.home"))
+    return render_template("register.html", name="", email="")
+
+
+@bp.get("/logout")
+def logout_page():
+    """Typing /logout shouldn't 405; just sign out and go to the sign-in page."""
+    return logout()
 
 
 @bp.post("/logout")
@@ -614,6 +695,14 @@ def create_app(database_uri=None):
         # Caddy terminates TLS (deploy/gcp) — trust its X-Forwarded-* headers.
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     csrf.init_app(app)
+
+    @app.errorhandler(CSRFError)
+    def form_expired(_error):
+        """Stale or missing form token (old tab, restarted browser): retry, don't 400."""
+        if request.path.startswith("/api/") or request.is_json:
+            return jsonify(ok=False, error="Your session expired. Reload the page and try again."), 400
+        flash("That form had expired, so nothing was submitted. Please try again.", "error")
+        return redirect(_same_site_referrer() or url_for("main.login"))
 
     @app.context_processor
     def inject_sidebar():
